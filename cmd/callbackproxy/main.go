@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 )
 
 // Version is set by the Makefile
@@ -59,8 +60,15 @@ func main() {
 	}
 
 	// Setup signal wait for shutdown
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
+	signalCh := make(chan os.Signal, 1)
+	shutdownCh := make(chan struct{})
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-signalCh
+		log.Infoln("Received Signal:", sig.String())
+		close(shutdownCh)
+		return
+	}()
 
 	if !strings.HasSuffix((*callbackServer).Path, "/") {
 		(*callbackServer).Path = fmt.Sprintf("%s/", (*callbackServer).Path)
@@ -101,6 +109,11 @@ func main() {
 	}
 	defer wconn.Close()
 
+	rwc, wrapErr := websocketrwc.WrapClientWebsocket(wconn)
+	if wrapErr != nil {
+		log.Fatalln("Error while wrapping websocket:", wrapErr)
+	}
+
 	log := log.With("remote_addr", wconn.RemoteAddr())
 
 	stdio := util.NewReadWriteCloser(os.Stdin, os.Stdout, func() error {
@@ -108,7 +121,7 @@ func main() {
 		return nil
 	})
 
-	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, wconn.UnderlyingConn())
+	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh)
 	resultErr := <-resultCh
 	if resultErr != nil {
 		if resultErr != io.EOF {

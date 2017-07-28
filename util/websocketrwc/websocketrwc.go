@@ -205,3 +205,14 @@ func Upgrade(w http.ResponseWriter, r *http.Request, h http.Header, upgrader *we
 
 	return conn, nil
 }
+
+// Wrap's an established websocket connection.
+func WrapClientWebsocket(ws *websocket.Conn) (*Conn, error) {
+	conn := &Conn{
+		ws:   ws,
+		buf:  newSafeBuffer(),
+		done: make(chan struct{}),
+	}
+
+	return conn, nil
+}

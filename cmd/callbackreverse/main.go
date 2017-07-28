@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 )
 
 // Version is set by the Makefile
@@ -62,8 +63,15 @@ func main() {
 	}
 
 	// Setup signal wait for shutdown
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
+	signalCh := make(chan os.Signal, 1)
+	shutdownCh := make(chan struct{})
+	signal.Notify(signalCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-signalCh
+		log.Infoln("Received Signal:", sig.String())
+		close(shutdownCh)
+		return
+	}()
 
 	if !strings.HasSuffix((*callbackServer).Path, "/") {
 		(*callbackServer).Path = fmt.Sprintf("%s/", (*callbackServer).Path)
@@ -104,8 +112,13 @@ func main() {
 	}
 	defer wconn.Close()
 
+	rwc, wrapErr := websocketrwc.WrapClientWebsocket(wconn)
+	if wrapErr != nil {
+		log.Fatalln("Error while wrapping websocket:", wrapErr)
+	}
+
 	// Setup a yamux *server* on the websocket connection
-	muxServer, merr := yamux.Server(wconn.UnderlyingConn(), nil)
+	muxServer, merr := yamux.Server(rwc, nil)
 	if merr != nil {
 		log.Fatalln("Could not setup mux session:", merr)
 	}
@@ -147,7 +160,7 @@ func main() {
 				With("outgoing_local_addr", outgoingConn.LocalAddr())
 
 			log.Debugln("Proxy connected.")
-			errCh := util.HandleProxy(log, *proxyBufferSize, incomingConn, outgoingConn)
+			errCh := util.HandleProxy(log, *proxyBufferSize, incomingConn, outgoingConn, shutdownCh)
 			go func() {
 				perr := <-errCh
 				if perr != nil {
@@ -164,8 +177,8 @@ func main() {
 	}()
 
 	select {
-	case sig := <-shutdownCh:
-		log.Infoln("Terminating on signal:", sig)
+	case <-shutdownCh:
+		log.Infoln("Shutting down on user request")
 	case eerr := <-exitCh:
 		if eerr != nil {
 			log.Errorln("Exiting due to error:", eerr)

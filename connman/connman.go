@@ -82,6 +82,35 @@ func NewConnectionManager(proxyBufferSize int) *ConnectionManager {
 	}
 }
 
+// ListCallbackSessions returns a list of the callback session descriptions
+// currently enabled.
+func (this *ConnectionManager) ListCallbackSessions() map[string]CallbackSessionDesc {
+	this.callbackMtx.RLock()
+	defer this.callbackMtx.RUnlock()
+
+	ret := make(map[string]CallbackSessionDesc, len(this.callbackSessions))
+
+	for k, v := range this.callbackSessions {
+		ret[k] = v.CallbackSessionDesc
+	}
+
+	return ret
+}
+
+// ListClientSessions returns a list of the callback session descriptions
+// currently enabled.
+func (this *ConnectionManager) ListClientSessions() []ClientSessionDesc {
+	this.clientMtx.RLock()
+	defer this.clientMtx.RUnlock()
+
+	ret := make([]ClientSessionDesc, len(this.clientSessions))
+	for _, v := range this.clientSessions {
+		ret = append(ret, *v)
+	}
+
+	return ret
+}
+
 // CallbackConnection takes a callbackId and an established net.Conn object, and sets up the mux and reverse
 // proxy system. Returns an error channel which will yield nil or an error once
 // the underlying connection can be closed.

@@ -12,7 +12,7 @@ import (
 // CallbackPosts establishes a persistent websocket connection, and tries to
 // back connect a yamux.Client instance to it (expecting a server on the other
 // end.
-func CallbackPost(settings apisettings.APISettings) httprouter.Handle {
+func CallbackGet(settings apisettings.APISettings) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		defer r.Body.Close()
 

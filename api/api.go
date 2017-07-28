@@ -18,7 +18,7 @@ func NewAPI_v1(settings apisettings.APISettings) http.Handler {
 	//router.GET("/events/callback", plan.Subscribe(settings))
 
 	// Callback (reverse proxy) setup
-	router.GET("/callback/:callbackId", callback.CallbackPost(settings))
+	router.GET("/callback/:callbackId", callback.CallbackGet(settings))
 	//router.GET("/callback/:identifier", plan.GetPlan(settings))
 	//router.PUT("/callback/:identifier", plan.SetPlan(settings))
 	//router.DELETE("/callback/:identifier", plan.DeletePlan(settings))
@@ -27,7 +27,7 @@ func NewAPI_v1(settings apisettings.APISettings) http.Handler {
 	//router.DELETE("/callback", plan.ClearPlans(settings))
 
 	// Connect setup
-	router.POST("/connect/:callbackId", connect.ConnectPost(settings))
+	router.GET("/connect/:callbackId", connect.ConnectGet(settings))
 
 	return router
 }

@@ -9,8 +9,8 @@ import (
 	"net/http"
 )
 
-// ConnectPost establishes a websocket connection to
-func ConnectPost(settings apisettings.APISettings) httprouter.Handle {
+// ConnectGet establishes a websocket connection to
+func ConnectGet(settings apisettings.APISettings) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		defer r.Body.Close()
 
