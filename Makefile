@@ -59,7 +59,7 @@ lint: tools
 fmt: tools
 	gofmt -s -w $(GO_SRC)
 
-test: tools
+test: tools $(GO_SRC)
 	@mkdir -p $(COVERDIR)
 	@rm -f $(COVERDIR)/*
 	for pkg in $(GO_PKGS) ; do \
