@@ -212,7 +212,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 
 		log.Infoln("Client connected to session.")
 
-		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection)
+		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection, nil)
 		cerr := <-errCh
 		if cerr != io.EOF || cerr != nil {
 			log.Errorln("Client disconnected from session due to error.")

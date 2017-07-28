@@ -17,6 +17,7 @@ import (
 	"strings"
 	"syscall"
 	"github.com/wrouesnel/callback/util/websocketrwc"
+	"time"
 )
 
 // Version is set by the Makefile
@@ -35,7 +36,8 @@ var (
 	forwardingAddress = app.Flag("connect", "Address and Port to forward to").String()
 	callbackId        = app.Flag("id", "Callback ID to register as").String()
 
-	//forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
+	forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
+	foreverReconnect = app.Flag("reconnect-interval", "Reconnect interval").Default("1s").Duration()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
@@ -100,32 +102,79 @@ func main() {
 		log.Fatalln("Unrecognized URI for remote endpoint:", apiUri.Scheme)
 	}
 
+	exitCode := 0
+	reconnectLoop: for {
+		exitCh := forwardServer(apiUri.String(), shutdownCh)
+		select {
+		case <-shutdownCh:
+			log.Infoln("Shutting down due to user request.")
+			break reconnectLoop
+		case eerr := <- exitCh:
+			if eerr != nil {
+				log.Errorln("Disconnected due to error:", eerr)
+				if !*forever {
+					log.Infoln("Exiting due to server disconnect.")
+					exitCode = 1
+					break reconnectLoop
+				} else {
+					log.Infoln("Attempting to reconnect.")
+				}
+			}
+		}
+		time.Sleep(*foreverReconnect)
+	}
+	os.Exit(exitCode)
+}
+
+// forwardServer implements the forwarding server.
+func forwardServer(apiUri string, shutdownCh <-chan struct{}) chan error {
+	exitCh := make(chan error)
+
 	wDialer := websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: *connectTimeout,
 		// TODO: what do you set the buffers to when you are going to mux over it
 	}
 
-	wconn, _, err := wDialer.Dial(apiUri.String(), nil)
-	if err != nil {
-		log.Fatalln("Failed to connect to callback server:", err)
-	}
-	defer wconn.Close()
-
-	rwc, wrapErr := websocketrwc.WrapClientWebsocket(wconn)
-	if wrapErr != nil {
-		log.Fatalln("Error while wrapping websocket:", wrapErr)
-	}
-
-	// Setup a yamux *server* on the websocket connection
-	muxServer, merr := yamux.Server(rwc, nil)
-	if merr != nil {
-		log.Fatalln("Could not setup mux session:", merr)
-	}
-
 	// Launch the listener
-	exitCh := make(chan error)
+	loopExiting := make(chan struct{})
 	go func() {
+		wconn, _, err := wDialer.Dial(apiUri, nil)
+		if err != nil {
+			log.Errorln("Failed to connect to callback server:", err)
+			deferredErr(exitCh, err)
+			return
+		}
+		defer wconn.Close()
+
+		rwc, wrapErr := websocketrwc.WrapClientWebsocket(wconn)
+		if wrapErr != nil {
+			log.Errorln("Error while wrapping websocket:", wrapErr)
+			deferredErr(exitCh, err)
+			return
+		}
+
+		// Setup a yamux *server* on the websocket connection
+		muxServer, merr := yamux.Server(rwc, nil)
+		if merr != nil {
+			log.Errorln("Could not setup mux session:", merr)
+			deferredErr(exitCh, err)
+			return
+		}
+
+		// Launch the shutdown system
+		go func() {
+			select {
+			case <-shutdownCh:
+			case <-loopExiting:
+			}
+			log.Debugln("Shutting down mux server due to forward server shutting down.")
+			if mcerr := muxServer.Close(); mcerr != nil {
+				log.Errorln("Got error while closing mux session:", mcerr)
+			}
+			return
+		}()
+
 		for {
 			incomingConn, aerr := muxServer.Accept()
 			if aerr != nil {
@@ -134,6 +183,7 @@ func main() {
 				log.Errorln("Error accepting connection on mux:", aerr)
 				exitCh <- aerr
 				close(exitCh)
+				close(loopExiting)
 				return
 			}
 
@@ -176,18 +226,11 @@ func main() {
 		}
 	}()
 
-	select {
-	case <-shutdownCh:
-		log.Infoln("Shutting down on user request")
-	case eerr := <-exitCh:
-		if eerr != nil {
-			log.Errorln("Exiting due to error:", eerr)
-		}
-	}
+	return exitCh
+}
 
-	if mcerr := muxServer.Close(); mcerr != nil {
-		log.Errorln("Got error while closing mux session:", mcerr)
-	} else {
-		log.Debugln("Mux session closed successfully.")
-	}
+func deferredErr(errCh chan error, err error) {
+	go func() {
+		errCh <- err
+	}()
 }

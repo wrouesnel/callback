@@ -121,17 +121,31 @@ func main() {
 		return nil
 	})
 
+	exitCh := make(chan int)
+	// Start proxying
 	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh)
-	resultErr := <-resultCh
-	if resultErr != nil {
-		if resultErr != io.EOF {
-			log.Errorln("Connection closed with error:", resultErr)
-		} else {
-			log.Debugln("Connection closed with EOF")
+	// Wait for user shutdown or resultCh
+	go func() {
+		select {
+		case resultErr := <- resultCh:
+			if resultErr != nil {
+				if resultErr != io.EOF {
+					log.Errorln("Connection closed with error:", resultErr)
+					exitCh <- 1
+				} else {
+					log.Debugln("Connection closed with EOF")
+					exitCh <- 0
+				}
+			} else {
+				log.Debugln("Connection closed without error.")
+				exitCh <- 0
+			}
+		case <-shutdownCh:
+			log.Infoln("Exiting on user request.")
+			exitCh <- 0
 		}
-	} else {
-		log.Debugln("Connection closed without error.")
-	}
+	}()
 
-	os.Exit(0)
+	exitCode := <- exitCh
+	os.Exit(exitCode)
 }
