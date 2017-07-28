@@ -78,6 +78,11 @@ reverse proxy connections via SSH configuration, bypass the whole idea and
 inject them directly into a more modern web-stack that would be amenable to
 more management.
 
+# Building
+
+The build system is slightly influx at the moment - it mostly works but 
+building the web assets is not fully automated yet.
+
 # TODO
 * Web interface
 * Add metrics tracking to client sessions
