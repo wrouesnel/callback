@@ -1,9 +1,9 @@
 
-COVERDIR = .coverage
-TOOLDIR = tools
+COVERDIR = $(shell pwd)/.coverage
+TOOLDIR = $(shell pwd)/tools
 
-GO_SRC := $(shell find . -name '*.go' ! -path '*/vendor/*' ! -path 'tools/*' ! -path 'assets/bindata.go' ) assets/bindata.go
-GO_DIRS := $(shell find . -type d -name '*.go' ! -path '*/vendor/*' ! -path 'tools/*' )
+GO_SRC := $(shell find . -name '*.go' ! -path '*/vendor/*' ! -path 'tools/*' ! -path 'assets/bindata.go' ! -path 'node_modules/*' ! -path 'web/*' ! -path 'assets/static/*' ) assets/bindata.go
+GO_DIRS := $(shell find . -path './vendor/*' -o -path './tools/*' -o -path './assets/bindata.go' -o -path './assets/static'cle -prune -o -name '*.go' -printf "%h\n" | uniq | tr -s '\n' ' ')
 GO_PKGS := $(shell go list ./... | grep -v '/vendor/')
 
 GO_CMDS := $(shell find cmd -mindepth 1 -type d -printf "%f ")
@@ -11,7 +11,7 @@ GO_CMDS := $(shell find cmd -mindepth 1 -type d -printf "%f ")
 VERSION ?= $(shell git describe --dirty)
 
 CONCURRENT_LINTERS ?= $(shell cat /proc/cpuinfo | grep processor | wc -l)
-LINTER_DEADLINE ?= 30s
+LINTER_DEADLINE ?= 60s
 
 export PATH := $(TOOLDIR)/bin:$(PATH)
 SHELL := env PATH=$(PATH) /bin/bash
@@ -50,7 +50,7 @@ web-live: callbackserver
 		wait $(jobs -p)
 
 style: tools
-	gometalinter --disable-all --enable=gofmt --vendor
+	gometalinter --disable-all --enable=gofmt --vendor $(GO_DIRS)
 
 lint: tools
 	@echo Using $(CONCURRENT_LINTERS) processes
