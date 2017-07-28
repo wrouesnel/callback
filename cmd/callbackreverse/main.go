@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
 	"github.com/wrouesnel/callback/util"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 	"github.com/wrouesnel/go.log"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
@@ -16,7 +17,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"github.com/wrouesnel/callback/util/websocketrwc"
 	"time"
 )
 
@@ -36,7 +36,7 @@ var (
 	forwardingAddress = app.Flag("connect", "Address and Port to forward to").String()
 	callbackId        = app.Flag("id", "Callback ID to register as").String()
 
-	forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
+	forever          = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
 	foreverReconnect = app.Flag("reconnect-interval", "Reconnect interval").Default("1s").Duration()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
@@ -103,13 +103,14 @@ func main() {
 	}
 
 	exitCode := 0
-	reconnectLoop: for {
+reconnectLoop:
+	for {
 		exitCh := forwardServer(apiUri.String(), shutdownCh)
 		select {
 		case <-shutdownCh:
 			log.Infoln("Shutting down due to user request.")
 			break reconnectLoop
-		case eerr := <- exitCh:
+		case eerr := <-exitCh:
 			if eerr != nil {
 				log.Errorln("Disconnected due to error:", eerr)
 				if !*forever {

@@ -84,7 +84,7 @@ func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdown
 		data := make([]byte, bufferSize)
 		for {
 			select {
-			case <- shutdownCh:
+			case <-shutdownCh:
 				closeCh <- nil
 				close(closeCh)
 				log.Debugln("Pipe process shutting down on user request")

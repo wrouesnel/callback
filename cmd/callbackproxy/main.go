@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/wrouesnel/callback/util"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 	"github.com/wrouesnel/go.log"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"github.com/wrouesnel/callback/util/websocketrwc"
 )
 
 // Version is set by the Makefile
@@ -127,7 +127,7 @@ func main() {
 	// Wait for user shutdown or resultCh
 	go func() {
 		select {
-		case resultErr := <- resultCh:
+		case resultErr := <-resultCh:
 			if resultErr != nil {
 				if resultErr != io.EOF {
 					log.Errorln("Connection closed with error:", resultErr)
@@ -146,6 +146,6 @@ func main() {
 		}
 	}()
 
-	exitCode := <- exitCh
+	exitCode := <-exitCh
 	os.Exit(exitCode)
 }
