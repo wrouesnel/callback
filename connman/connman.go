@@ -3,14 +3,12 @@
 package connman
 
 import (
-	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
 	"github.com/wrouesnel/go.log"
 	"sync"
 	"github.com/wrouesnel/callback/util"
 	"time"
 	"io"
-	"gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 )
 
 type ErrSessionExists struct {
@@ -139,51 +137,71 @@ func (this* ConnectionManager) CallbackConnection(callbackId string, remoteAddr 
 
 // ClientConnection attempts to connect to the callback reverse proxy session given by callbackId.
 // Blocks until the connection is finished (should be called by a goroutine).
-func (this* ConnectionManager) ClientConnection(callbackId string, incomingConn *websocket.Conn) error {
-	this.callbackMtx.RLock()
-	defer this.callbackMtx.RUnlock()
+func (this* ConnectionManager) ClientConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
+	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
+	errCh := make(chan error)
 
-	sessionData := ClientSessionDesc{
-		ConnectedAt: time.Now(),
-		RemoteAddr: incomingConn.RemoteAddr().String(),
-		CallbackId: callbackId,
-		BytesOut: 0,
-		BytesIn: 0,
-	}
+	go func() {
+		this.callbackMtx.RLock()
 
-	log := log.With("remote_addr", sessionData.RemoteAddr).
-		       With("callback_id", sessionData.CallbackId)
+		// Check if we have a session with that name
+		session, found := this.callbackSessions[callbackId]
+		if !found {
+			log.Errorln("Requested callback session does not exist.")
+			errCh <- error(&ErrSessionUnknown{callbackId})
+			close(errCh)
+			this.callbackMtx.RUnlock()
+			return
+		}
+		this.callbackMtx.RUnlock()
 
-	// Check if we have a session with that name
-	session, found := this.callbackSessions[callbackId]
-	if !found {
-		log.Errorln("Requested callback session does not exist.")
-		return &ErrSessionUnknown{callbackId}
-	}
+		// We do, try and dial the client.
+		reverseConnection, err := session.muxClient.Open()
+		if err != nil {
+			log.Errorln("Establishing reverse connection failed:", err)
+			errCh <- err
+			close(errCh)
+			return
+		}
 
-	// We do, try and dial the client.
-	reverseConnection, err := session.muxClient.Open()
-	if err != nil {
-		log.Errorln("Establishing reverse connection failed:", err)
-		return err
-	}
+		sessionData := &ClientSessionDesc{
+			ConnectedAt: time.Now(),
+			RemoteAddr: remoteAddr,
+			CallbackId: callbackId,
+			BytesOut: 0,
+			BytesIn: 0,
+		}
 
-	// TODO: these seem unnecessary...
-	session.Lock()
-	session.NumClients += 1
-	session.Unlock()
+		this.clientMtx.Lock()
+		this.clientSessions[callbackId] = sessionData
+		this.clientMtx.Unlock()
 
-	log.Infoln("Client connected to session.")
+		// TODO: these seem unnecessary...
+		session.Lock()
+		session.NumClients += 1
+		session.Unlock()
 
-	errCh := util.HandleProxy(log, this.proxyBufferSize,
-		incomingConn.UnderlyingConn(), reverseConnection)
+		log.Infoln("Client connected to session.")
 
-	log.Infoln("Client disconnected.")
+		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection)
+		cerr := <- errCh
+		if cerr != io.EOF || cerr != nil {
+			log.Errorln("Client disconnected from session due to error.")
+			// TODO: trigger a disconnect of a bad mux ?
+			//session.resultCh <- cerr
+		}
 
-	// TODO: these seem unnecessary...
-	session.Lock()
-	session.NumClients -= 1
-	session.Unlock()
+		log.Infoln("Client disconnected.")
 
-	return <- errCh
+		this.clientMtx.Lock()
+		delete(this.clientSessions,callbackId)
+		this.clientMtx.Unlock()
+
+		// TODO: these seem unnecessary...
+		session.Lock()
+		session.NumClients -= 1
+		session.Unlock()
+	}()
+
+	return errCh
 }

@@ -36,7 +36,7 @@ var (
 
     //forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
 
-	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Uint()
+	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
 	loglevel  = app.Flag("log-level", "Logging Level").Default("info").String()
 	logformat = app.Flag("log-format", "If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.").Default("logger:stderr").String()

@@ -20,7 +20,7 @@ import (
 var Version = "0.0.0.dev"
 
 const (
-	CallbackApiPath = "api/v1/callback"
+	CallbackApiPath = "api/v1/connect"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 
     callbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
 
-	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Uint()
+	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
 	loglevel  = app.Flag("log-level", "Logging Level").Default("info").String()
 	logformat = app.Flag("log-format", "If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.").Default("logger:stderr").String()

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"github.com/wrouesnel/go.log"
 	"github.com/gorilla/websocket"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 )
 
 // ConnectPost establishes a websocket connection to
@@ -27,17 +28,21 @@ func ConnectPost(settings apisettings.APISettings) httprouter.Handle {
 			WriteBufferSize: settings.WriteBufferSize,
 		}
 
-		incomingConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Errorln("Websocket upgrade failed:", err)
-			http.Error(w, "Websocket upgrade failed", http.StatusInternalServerError)
+		incomingConn, uerr := websocketrwc.Upgrade(w, r, nil, &upgrader)
+		if uerr != nil {
+			log.Errorln("Websocket upgrade failed:", uerr)
+			return
 		}
+		log.Infoln("Connection upgrade successful.")
 
 		log.Infoln("Connection upgrade successful. Registering callback session.")
-		cerr := settings.ConnectionManager.ClientConnection(callbackId, incomingConn)
-		if cerr != nil {
-			log.Errorln("Client session error:", err)
+		errCh := settings.ConnectionManager.ClientConnection(callbackId, r.RemoteAddr, incomingConn)
+
+		err := <- errCh
+		if err != nil {
+			log.Errorln("Callback session error:", err)
+		} else {
+			log.Infoln("Callback session ended normally.")
 		}
-		log.Infoln("Client session ended normally")
 	}
 }
