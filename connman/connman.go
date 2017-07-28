@@ -4,11 +4,11 @@ package connman
 
 import (
 	"github.com/hashicorp/yamux"
-	"github.com/wrouesnel/go.log"
-	"sync"
 	"github.com/wrouesnel/callback/util"
-	"time"
+	"github.com/wrouesnel/go.log"
 	"io"
+	"sync"
+	"time"
 )
 
 type ErrSessionExists struct {
@@ -30,10 +30,10 @@ func (err ErrSessionUnknown) Error() string {
 type ConnectionManager struct {
 	// callbackSessions holds the currently active muxes.
 	callbackSessions map[string]*callbackSession
-	callbackMtx sync.RWMutex
+	callbackMtx      sync.RWMutex
 
 	clientSessions map[string]*ClientSessionDesc
-	clientMtx sync.RWMutex
+	clientMtx      sync.RWMutex
 
 	proxyBufferSize int
 }
@@ -41,25 +41,25 @@ type ConnectionManager struct {
 // ClientSessionDesc holds connection information for a client session.
 type ClientSessionDesc struct {
 	// Establishment time
-	ConnectedAt time.Time		`json:"connected_at"`
+	ConnectedAt time.Time `json:"connected_at"`
 	// Connection details
-	RemoteAddr string			`json:"remote_addr"`
+	RemoteAddr string `json:"remote_addr"`
 	// Connection Target
-	CallbackId string			`json:"callback_id"`
+	CallbackId string `json:"callback_id"`
 	// Connection tallies
-	BytesOut uint64				`json:"bytes_out"`
-	BytesIn  uint64				`json:"bytes_in"`
+	BytesOut uint64 `json:"bytes_out"`
+	BytesIn  uint64 `json:"bytes_in"`
 }
 
 // CallbackSessionDesc holds connection infromation for a callback reverse proxy
 // session
 type CallbackSessionDesc struct {
 	// Establishment time
-	ConnectedAt time.Time		`json:"connected_at"`
+	ConnectedAt time.Time `json:"connected_at"`
 	// Connection details
-	RemoteAddr string			`json:"remote_addr"`
+	RemoteAddr string `json:"remote_addr"`
 	// Number of clients
-	NumClients uint				`json:"num_clients"`
+	NumClients uint `json:"num_clients"`
 }
 
 // callbackSession holds the actual internal state of a session
@@ -76,16 +76,16 @@ type callbackSession struct {
 // NewConnMan initializes a new connection manager
 func NewConnectionManager(proxyBufferSize int) *ConnectionManager {
 	return &ConnectionManager{
-		callbackSessions : make(map[string]*callbackSession),
-		clientSessions : make(map[string]*ClientSessionDesc),
-		proxyBufferSize: proxyBufferSize,
+		callbackSessions: make(map[string]*callbackSession),
+		clientSessions:   make(map[string]*ClientSessionDesc),
+		proxyBufferSize:  proxyBufferSize,
 	}
 }
 
 // CallbackConnection takes a callbackId and an established net.Conn object, and sets up the mux and reverse
 // proxy system. Returns an error channel which will yield nil or an error once
 // the underlying connection can be closed.
-func (this* ConnectionManager) CallbackConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
+func (this *ConnectionManager) CallbackConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
 
 	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
 	errCh := make(chan error)
@@ -123,7 +123,7 @@ func (this* ConnectionManager) CallbackConnection(callbackId string, remoteAddr 
 		newSession := &callbackSession{
 			muxClient:           muxSession,
 			Mutex:               &sync.Mutex{},
-			resultCh:			 errCh,
+			resultCh:            errCh,
 			CallbackSessionDesc: sessionData,
 		}
 
@@ -137,7 +137,7 @@ func (this* ConnectionManager) CallbackConnection(callbackId string, remoteAddr 
 
 // ClientConnection attempts to connect to the callback reverse proxy session given by callbackId.
 // Blocks until the connection is finished (should be called by a goroutine).
-func (this* ConnectionManager) ClientConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
+func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
 	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
 	errCh := make(chan error)
 
@@ -166,10 +166,10 @@ func (this* ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 
 		sessionData := &ClientSessionDesc{
 			ConnectedAt: time.Now(),
-			RemoteAddr: remoteAddr,
-			CallbackId: callbackId,
-			BytesOut: 0,
-			BytesIn: 0,
+			RemoteAddr:  remoteAddr,
+			CallbackId:  callbackId,
+			BytesOut:    0,
+			BytesIn:     0,
 		}
 
 		this.clientMtx.Lock()
@@ -184,7 +184,7 @@ func (this* ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 		log.Infoln("Client connected to session.")
 
 		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection)
-		cerr := <- errCh
+		cerr := <-errCh
 		if cerr != io.EOF || cerr != nil {
 			log.Errorln("Client disconnected from session due to error.")
 			// TODO: trigger a disconnect of a bad mux ?
@@ -194,7 +194,7 @@ func (this* ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 		log.Infoln("Client disconnected.")
 
 		this.clientMtx.Lock()
-		delete(this.clientSessions,callbackId)
+		delete(this.clientSessions, callbackId)
 		this.clientMtx.Unlock()
 
 		// TODO: these seem unnecessary...

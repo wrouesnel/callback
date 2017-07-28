@@ -1,21 +1,21 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
 	"flag"
-	"github.com/wrouesnel/go.log"
-	"syscall"
-	"os/signal"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
-	"net"
 	"github.com/wrouesnel/callback/util"
-	"net/url"
-	"strings"
-	"fmt"
-	"net/http"
+	"github.com/wrouesnel/go.log"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 // Version is set by the Makefile
@@ -28,13 +28,13 @@ const (
 var (
 	app = kingpin.New("callbackreverse", "Callback Server Reverse Proxy Client")
 
-    callbackServer = app.Flag("server", "Callback Server to connect to").URL()
+	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
-    forwardingAddress = app.Flag("connect", "Address and Port to forward to").String()
-    callbackId = app.Flag("id", "Callback ID to register as").String()
+	forwardingAddress = app.Flag("connect", "Address and Port to forward to").String()
+	callbackId        = app.Flag("id", "Callback ID to register as").String()
 
-    //forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
+	//forever = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
@@ -69,7 +69,7 @@ func main() {
 		(*callbackServer).Path = fmt.Sprintf("%s/", (*callbackServer).Path)
 	}
 
-	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s",CallbackApiPath, *callbackId))
+	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s", CallbackApiPath, *callbackId))
 	if err != nil {
 		log.Fatalln("BUG: CallbackApiPath should always resolve")
 	}
@@ -93,7 +93,7 @@ func main() {
 	}
 
 	wDialer := websocket.Dialer{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: *connectTimeout,
 		// TODO: what do you set the buffers to when you are going to mux over it
 	}
@@ -126,7 +126,7 @@ func main() {
 
 			// Update the logger with incoming detail
 			log := log.With("incoming_remote_addr", incomingConn.RemoteAddr()).
-			    With("incoming_local_addr", incomingConn.LocalAddr())
+				With("incoming_local_addr", incomingConn.LocalAddr())
 
 			log.Debugln("Accepting connection on mux")
 
@@ -135,7 +135,7 @@ func main() {
 				log.With("forwarding_addr", *forwardingAddress).
 					Errorln("Error establishing outgoing proxy connection")
 
-				if icerr := incomingConn.Close() ; icerr != nil {
+				if icerr := incomingConn.Close(); icerr != nil {
 					log.Errorln("Error while closing incoming mux connection:", icerr)
 				}
 				// No proxying - skip to continue accepting connections
@@ -149,7 +149,7 @@ func main() {
 			log.Debugln("Proxy connected.")
 			errCh := util.HandleProxy(log, *proxyBufferSize, incomingConn, outgoingConn)
 			go func() {
-				perr := <- errCh
+				perr := <-errCh
 				if perr != nil {
 					if perr != io.EOF {
 						log.Errorln("Proxy connection terminated with error:", perr)

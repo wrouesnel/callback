@@ -1,12 +1,12 @@
 package callback
 
 import (
+	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"github.com/wrouesnel/callback/api/apisettings"
-	"net/http"
-	"github.com/wrouesnel/go.log"
-	"github.com/gorilla/websocket"
 	"github.com/wrouesnel/callback/util/websocketrwc"
+	"github.com/wrouesnel/go.log"
+	"net/http"
 )
 
 // CallbackPosts establishes a persistent websocket connection, and tries to
@@ -26,7 +26,7 @@ func CallbackPost(settings apisettings.APISettings) httprouter.Handle {
 		log.With("callbackid", callbackId)
 
 		var upgrader = websocket.Upgrader{
-			ReadBufferSize: int(settings.ReadBufferSize),
+			ReadBufferSize:  int(settings.ReadBufferSize),
 			WriteBufferSize: int(settings.WriteBufferSize),
 		}
 
@@ -39,7 +39,7 @@ func CallbackPost(settings apisettings.APISettings) httprouter.Handle {
 
 		errCh := settings.ConnectionManager.CallbackConnection(callbackId, r.RemoteAddr, incomingConn)
 
-		err := <- errCh
+		err := <-errCh
 		if err != nil {
 			log.Errorln("Callback session error:", err)
 		} else {

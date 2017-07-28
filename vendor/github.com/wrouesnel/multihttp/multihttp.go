@@ -1,20 +1,20 @@
 package multihttp
 
 import (
-	"os"
-	"net"
-	"net/url"
-	"net/http"
 	"crypto/tls"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
 	"time"
 	//"fmt"
 )
 
 // Specifies an address (in URL format) and it's TLS cert file.
 type TLSAddress struct {
-	Address string
+	Address  string
 	CertFile string
-	KeyFile string
+	KeyFile  string
 }
 
 func ParseAddress(address string) (string, string, error) {
@@ -22,12 +22,12 @@ func ParseAddress(address string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	
-	if urlp.Path != "" {	// file-likes
+
+	if urlp.Path != "" { // file-likes
 		return urlp.Scheme, urlp.Path, nil
-	} else {	// actual network sockets
+	} else { // actual network sockets
 		return urlp.Scheme, urlp.Host, nil
-	} 
+	}
 }
 
 // Runs clean up on a list of listeners, namely deleting any Unix socket files
@@ -36,8 +36,8 @@ func CloseAndCleanUpListeners(listeners []net.Listener) {
 		listener.Close()
 		addr := listener.Addr()
 		switch addr.(type) {
-			case *net.UnixAddr:
-				os.Remove(addr.String())
+		case *net.UnixAddr:
+			os.Remove(addr.String())
 		}
 	}
 }
@@ -47,24 +47,24 @@ func CloseAndCleanUpListeners(listeners []net.Listener) {
 // listening interfaces are returned to allow for clean up.
 func Listen(addresses []string, handler http.Handler) ([]net.Listener, error) {
 	var listeners []net.Listener
-	
-	for _, address := range addresses {		
+
+	for _, address := range addresses {
 		protocol, address, err := ParseAddress(address)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		listener, err := net.Listen(protocol, address)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		// Append and start serving on listener
 		listener = maybeKeepAlive(listener)
 		listeners = append(listeners, listener)
 		go http.Serve(listener, handler)
 	}
-	
+
 	return listeners, nil
 }
 
@@ -72,40 +72,40 @@ func Listen(addresses []string, handler http.Handler) ([]net.Listener, error) {
 // Requires a list of certs
 func ListenTLS(addresses []TLSAddress, handler http.Handler) ([]net.Listener, error) {
 	var listeners []net.Listener
-	
+
 	for _, tlsAddressInfo := range addresses {
 		protocol, address, err := ParseAddress(tlsAddressInfo.Address)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		listener, err := net.Listen(protocol, address)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		config := &tls.Config{}
-		
+
 		config.NextProtos = []string{"http/1.1"}
-		
+
 		config.Certificates = make([]tls.Certificate, 1)
 		config.Certificates[0], err = tls.LoadX509KeyPair(tlsAddressInfo.CertFile, tlsAddressInfo.KeyFile)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		listener = maybeKeepAlive(listener)
-		
+
 		tlsListener := tls.NewListener(listener, config)
 		if err != nil {
 			return listeners, err
 		}
-		
+
 		// Append and start serving on listener
 		listeners = append(listeners, tlsListener)
 		go http.Serve(tlsListener, nil)
 	}
-	
+
 	return listeners, nil
 }
 
@@ -115,7 +115,7 @@ func maybeKeepAlive(ln net.Listener) net.Listener {
 		return tcpKeepAliveListener{o}
 	}
 	return ln
-} 
+}
 
 // Irritatingly the tcpKeepAliveListener is not public, so we need to recreate it.
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted connections.
@@ -135,13 +135,13 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 
 // Returns a dialer which ignores the address string and connects to the
 // given socket always.
-func newDialer(addr string, timeout time.Duration) (func (proto, addr string) (conn net.Conn, err error), error) {
+func newDialer(addr string, timeout time.Duration) (func(proto, addr string) (conn net.Conn, err error), error) {
 	realProtocol, realAddress, err := ParseAddress(addr)
 	if err != nil {
 		return nil, err
 	}
-	
-	return func (proto, addr string) (conn net.Conn, err error) {
+
+	return func(proto, addr string) (conn net.Conn, err error) {
 		c, err := net.DialTimeout(realProtocol, realAddress, timeout)
 		if err != nil {
 			return nil, err
@@ -163,9 +163,9 @@ func NewClient(addr string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	tr := &http.Transport{ Dial: dialer, }
-	client := &http.Client{Transport: tr, }
+
+	tr := &http.Transport{Dial: dialer}
+	client := &http.Client{Transport: tr}
 
 	return client, nil
 }
@@ -179,7 +179,7 @@ func NewDeadlineClient(addr string, timeout time.Duration) (*http.Client, error)
 		return nil, err
 	}
 
-	tr := &http.Transport{ Dial: dialer, DisableKeepAlives: true, }
+	tr := &http.Transport{Dial: dialer, DisableKeepAlives: true}
 	client := &http.Client{Transport: tr}
 
 	return client, nil

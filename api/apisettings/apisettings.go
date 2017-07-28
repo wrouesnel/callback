@@ -3,15 +3,14 @@
 package apisettings
 
 import (
-	"net/url"
 	"github.com/wrouesnel/callback/connman"
+	"net/url"
 	"time"
 )
 
 const (
 	// Imported by other utilities so we can track the latest API automatically
 	CallbackLatestApi = "v2"
-
 )
 
 type APISettings struct {
@@ -20,7 +19,7 @@ type APISettings struct {
 	StaticProxy *url.URL
 
 	// Websocket buffer sizes
-	ReadBufferSize int
+	ReadBufferSize  int
 	WriteBufferSize int
 
 	// Websocket Timeouts

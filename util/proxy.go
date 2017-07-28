@@ -65,7 +65,7 @@ func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWrite
 
 // ErrIncompleteWrite is returned when a proxy tunnel write returns less written
 // bytes then the input data.
-type ErrIncompleteWrite struct {}
+type ErrIncompleteWrite struct{}
 
 // Error implements error
 func (err ErrIncompleteWrite) Error() string {

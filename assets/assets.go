@@ -1,9 +1,9 @@
 package assets
 
 import (
-	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/julienschmidt/httprouter"
+	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/go.log"
 	"net/http"
 	"net/http/httputil"

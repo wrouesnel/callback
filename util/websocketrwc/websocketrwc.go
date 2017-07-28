@@ -24,10 +24,10 @@ var (
 	ErrClosing = errors.New(`Closing`)
 	// DefaultUpgrader will be used if a nil upgrader is passed to Upgrade().
 	DefaultUpgrader = &websocket.Upgrader{
-		HandshakeTimeout:  defaultHandshakeTimeout,
-		ReadBufferSize:    defaultBufferSize,
-		WriteBufferSize:   defaultBufferSize,
-		CheckOrigin:       func(r *http.Request) bool { return true },
+		HandshakeTimeout: defaultHandshakeTimeout,
+		ReadBufferSize:   defaultBufferSize,
+		WriteBufferSize:  defaultBufferSize,
+		CheckOrigin:      func(r *http.Request) bool { return true },
 	}
 	// WriteTimeout determines the period of time a write will wait to complete
 	// before producing an error.

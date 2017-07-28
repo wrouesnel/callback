@@ -1,19 +1,19 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
 	"flag"
-	"github.com/wrouesnel/go.log"
-	"syscall"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"github.com/wrouesnel/callback/util"
+	"github.com/wrouesnel/go.log"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"os/signal"
 	"strings"
-	"github.com/gorilla/websocket"
-	"net/http"
-	"github.com/wrouesnel/callback/util"
-	"io"
+	"syscall"
 )
 
 // Version is set by the Makefile
@@ -29,9 +29,9 @@ var (
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
-    stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback Id").String()
+	stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback Id").String()
 
-    callbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
+	callbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
@@ -66,7 +66,7 @@ func main() {
 		(*callbackServer).Path = fmt.Sprintf("%s/", (*callbackServer).Path)
 	}
 
-	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s",CallbackApiPath, *callbackId))
+	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s", CallbackApiPath, *callbackId))
 	if err != nil {
 		log.Fatalln("BUG: CallbackApiPath should always resolve")
 	}
@@ -90,7 +90,7 @@ func main() {
 	}
 
 	wDialer := websocket.Dialer{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: *connectTimeout,
 		// TODO: what do you set the buffers to when you are going to mux over it
 	}

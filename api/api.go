@@ -3,10 +3,10 @@ package api
 
 import (
 	"github.com/julienschmidt/httprouter"
-	"net/http"
+	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/api/callback"
 	"github.com/wrouesnel/callback/api/connect"
-	"github.com/wrouesnel/callback/api/apisettings"
+	"net/http"
 )
 
 // Appends a new goboot-callback API to the supplied router.

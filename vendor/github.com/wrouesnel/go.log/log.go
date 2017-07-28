@@ -145,12 +145,12 @@ func (l logger) WithField(key string, value interface{}) Logger {
 	return l.With(key, value)
 }
 
-func (l logger)  WithError(err error) Logger {
-	return logger { l.entry.WithError(err) }
+func (l logger) WithError(err error) Logger {
+	return logger{l.entry.WithError(err)}
 }
 
-func (l logger)  WithFields(fields Fields) Logger {
-	return logger { l.entry.WithFields(logrus.Fields(fields)) }
+func (l logger) WithFields(fields Fields) Logger {
+	return logger{l.entry.WithFields(logrus.Fields(fields))}
 }
 
 // Debug logs a message at level Debug on the standard logger.
@@ -369,4 +369,3 @@ func Panicln(args ...interface{}) {
 func Panicf(format string, args ...interface{}) {
 	baseLogger.sourced().Panicf(format, args...)
 }
-

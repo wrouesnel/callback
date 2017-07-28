@@ -1,20 +1,20 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
 	"flag"
-	"github.com/wrouesnel/go.log"
-	"github.com/wrouesnel/callback/connman"
 	"github.com/bakins/logrus-middleware"
-	"github.com/wrouesnel/multihttp"
-	"syscall"
-	"github.com/wrouesnel/callback/api/apisettings"
-	"net/http"
-	"github.com/wrouesnel/callback/api"
 	"github.com/sirupsen/logrus"
+	"github.com/wrouesnel/callback/api"
+	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/assets"
+	"github.com/wrouesnel/callback/connman"
+	"github.com/wrouesnel/go.log"
+	"github.com/wrouesnel/multihttp"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"net/http"
+	"os"
 	"os/signal"
+	"syscall"
 )
 
 // Version is set by the Makefile
@@ -26,7 +26,7 @@ var (
 	listenAddr  = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
 	staticProxy = app.Flag("debug.static-proxy", "URL of a proxy hosting static resources externally").URL()
 
-	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
+	proxyBufferSize  = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 	handshakeTimeout = app.Flag("proxy.timeout", "Set maximum timeouts for connections").Default("3s").Duration()
 
 	loglevel  = app.Flag("log-level", "Logging Level").Default("info").String()
@@ -52,10 +52,10 @@ func main() {
 
 	settings := apisettings.APISettings{
 		ConnectionManager: connectionManager,
-		StaticProxy: *staticProxy,
-		ReadBufferSize: *proxyBufferSize,
-		WriteBufferSize: *proxyBufferSize,
-		HandshakeTimeout: *handshakeTimeout,
+		StaticProxy:       *staticProxy,
+		ReadBufferSize:    *proxyBufferSize,
+		WriteBufferSize:   *proxyBufferSize,
+		HandshakeTimeout:  *handshakeTimeout,
 	}
 
 	// Setup HTTP router

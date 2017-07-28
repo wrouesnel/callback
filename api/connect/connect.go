@@ -1,12 +1,12 @@
 package connect
 
 import (
+	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"github.com/wrouesnel/callback/api/apisettings"
-	"net/http"
-	"github.com/wrouesnel/go.log"
-	"github.com/gorilla/websocket"
 	"github.com/wrouesnel/callback/util/websocketrwc"
+	"github.com/wrouesnel/go.log"
+	"net/http"
 )
 
 // ConnectPost establishes a websocket connection to
@@ -24,7 +24,7 @@ func ConnectPost(settings apisettings.APISettings) httprouter.Handle {
 		log.With("callbackid", callbackId)
 
 		var upgrader = websocket.Upgrader{
-			ReadBufferSize: settings.ReadBufferSize,
+			ReadBufferSize:  settings.ReadBufferSize,
 			WriteBufferSize: settings.WriteBufferSize,
 		}
 
@@ -38,7 +38,7 @@ func ConnectPost(settings apisettings.APISettings) httprouter.Handle {
 		log.Infoln("Connection upgrade successful. Registering callback session.")
 		errCh := settings.ConnectionManager.ClientConnection(callbackId, r.RemoteAddr, incomingConn)
 
-		err := <- errCh
+		err := <-errCh
 		if err != nil {
 			log.Errorln("Callback session error:", err)
 		} else {
