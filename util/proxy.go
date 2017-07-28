@@ -25,7 +25,7 @@ func NewReadWriteCloser(r io.Reader, w io.Writer, closeFn func() error) io.ReadW
 // io.ReadWriteCloser and sets up copy pipes between them. It returns a channel
 // which yields the exit status as an error type - nil is returned if the
 // connection closes normally.
-func HandleProxy(log log.Logger, bufferSize uint, incoming, outgoing io.ReadWriteCloser) <-chan error {
+func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWriteCloser) <-chan error {
 	resultCh := make(chan error)
 
 	go func() {
@@ -76,7 +76,7 @@ func (err ErrIncompleteWrite) Error() string {
 // using a buffer of bufferSize.
 // TODO: it feels like there should be windowing being done here?
 // TODO: this function could be a lot cleaner
-func pipe(log log.Logger, bufferSize uint, src io.Reader, dst io.Writer) <-chan error {
+func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer) <-chan error {
 	closeCh := make(chan error)
 
 	go func() {

@@ -30,7 +30,7 @@ var (
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
     stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback Id").String()
-    
+
     callbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Uint()

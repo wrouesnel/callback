@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"github.com/wrouesnel/go.log"
 	"github.com/gorilla/websocket"
+	"github.com/wrouesnel/callback/util/websocketrwc"
 )
 
-// ConnectPost establishes a websocket connection to
+// CallbackPosts establishes a persistent websocket connection, and tries to
+// back connect a yamux.Client instance to it (expecting a server on the other
+// end.
 func CallbackPost(settings apisettings.APISettings) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		defer r.Body.Close()
@@ -23,20 +26,22 @@ func CallbackPost(settings apisettings.APISettings) httprouter.Handle {
 		log.With("callbackid", callbackId)
 
 		var upgrader = websocket.Upgrader{
-			ReadBufferSize: settings.ReadBufferSize,
-			WriteBufferSize: settings.WriteBufferSize,
+			ReadBufferSize: int(settings.ReadBufferSize),
+			WriteBufferSize: int(settings.WriteBufferSize),
 		}
 
-		incomingConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Errorln("Websocket upgrade failed:", err)
-			http.Error(w, "Websocket upgrade failed", http.StatusInternalServerError)
+		incomingConn, uerr := websocketrwc.Upgrade(w, r, nil, &upgrader)
+		if uerr != nil {
+			log.Errorln("Websocket upgrade failed:", uerr)
+			return
 		}
-
 		log.Infoln("Connection upgrade successful.")
-		cerr := settings.ConnectionManager.CallbackConnection(callbackId, incomingConn)
-		if cerr != nil {
-			log.Errorln("Callback session error:", cerr)
+
+		errCh := settings.ConnectionManager.CallbackConnection(callbackId, r.RemoteAddr, incomingConn)
+
+		err := <- errCh
+		if err != nil {
+			log.Errorln("Callback session error:", err)
 		} else {
 			log.Infoln("Callback session ended normally.")
 		}

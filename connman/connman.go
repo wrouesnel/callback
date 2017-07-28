@@ -9,6 +9,8 @@ import (
 	"sync"
 	"github.com/wrouesnel/callback/util"
 	"time"
+	"io"
+	"gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
 )
 
 type ErrSessionExists struct {
@@ -35,7 +37,7 @@ type ConnectionManager struct {
 	clientSessions map[string]*ClientSessionDesc
 	clientMtx sync.RWMutex
 
-	proxyBufferSize uint
+	proxyBufferSize int
 }
 
 // ClientSessionDesc holds connection information for a client session.
@@ -66,11 +68,15 @@ type CallbackSessionDesc struct {
 type callbackSession struct {
 	muxClient *yamux.Session
 	*sync.Mutex
+	// resultCh holds the channel which communicates connection failure/termination
+	// to the underlying websocket. We send an error when we fail to connect,
+	// to signal the underlying request to finish and allow a reset.
+	resultCh chan<- error
 	CallbackSessionDesc
 }
 
 // NewConnMan initializes a new connection manager
-func NewConnectionManager(proxyBufferSize uint) *ConnectionManager {
+func NewConnectionManager(proxyBufferSize int) *ConnectionManager {
 	return &ConnectionManager{
 		callbackSessions : make(map[string]*callbackSession),
 		clientSessions : make(map[string]*ClientSessionDesc),
@@ -79,49 +85,56 @@ func NewConnectionManager(proxyBufferSize uint) *ConnectionManager {
 }
 
 // CallbackConnection takes a callbackId and an established net.Conn object, and sets up the mux and reverse
-// proxy system. Blocks until the incomingConn connection closes.
-func (this* ConnectionManager) CallbackConnection(callbackId string, incomingConn *websocket.Conn) error {
-	this.callbackMtx.Lock()
-	defer this.callbackMtx.Unlock()
+// proxy system. Returns an error channel which will yield nil or an error once
+// the underlying connection can be closed.
+func (this* ConnectionManager) CallbackConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
 
-	sessionData := CallbackSessionDesc{
-		ConnectedAt: time.Now(),
-		RemoteAddr: incomingConn.RemoteAddr().String(),
-	}
+	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
+	errCh := make(chan error)
 
-	log := log.With("remote_addr", sessionData.RemoteAddr).
-		With("callback_id", callbackId)
+	go func() {
+		this.callbackMtx.Lock()
+		defer this.callbackMtx.Unlock()
 
-	if callbackSession, found := this.callbackSessions[callbackId]; found {
-		// Is the session closed?
-		if !callbackSession.muxClient.IsClosed() {
-			log.Errorln("Callback session already exists and is active.")
-			if ierr := incomingConn.Close(); ierr != nil {
-				log.Errorln("Error closing websocket connection:", ierr)
+		if callbackSession, found := this.callbackSessions[callbackId]; found {
+			// Is the session closed?
+			if !callbackSession.muxClient.IsClosed() {
+				log.Errorln("Callback session already exists and is active.")
+				if ierr := incomingConn.Close(); ierr != nil {
+					log.Errorln("Error closing websocket connection:", ierr)
+				}
+				errCh <- &ErrSessionExists{callbackId}
+				return
 			}
-			return &ErrSessionExists{callbackId}
 		}
-	}
 
-	// Setup a mux session on the websocket
-	log.Debugln("Setting up a callback connection")
-	muxSession, merr := yamux.Client(incomingConn.UnderlyingConn(), nil)
-	if merr != nil {
-		log.Errorln("Could not setup mux session:", merr)
-		return merr
-	}
+		// Setup a mux session on the websocket
+		log.Debugln("Setting up mux connection")
+		muxSession, merr := yamux.Client(incomingConn, nil)
+		if merr != nil {
+			log.Errorln("Could not setup mux session:", merr)
+			errCh <- merr
+			return
+		}
 
-	newSession := &callbackSession{
-		muxClient: muxSession,
-		Mutex: &sync.Mutex{},
-		CallbackSessionDesc: sessionData,
-	}
+		sessionData := CallbackSessionDesc{
+			ConnectedAt: time.Now(),
+			RemoteAddr:  remoteAddr,
+		}
 
-	this.callbackSessions[callbackId] = newSession
+		newSession := &callbackSession{
+			muxClient:           muxSession,
+			Mutex:               &sync.Mutex{},
+			resultCh:			 errCh,
+			CallbackSessionDesc: sessionData,
+		}
 
-	log.Infoln("Established callback mux session.")
+		this.callbackSessions[callbackId] = newSession
 
-	return nil
+		log.Infoln("Established callback mux session.")
+	}()
+
+	return errCh
 }
 
 // ClientConnection attempts to connect to the callback reverse proxy session given by callbackId.

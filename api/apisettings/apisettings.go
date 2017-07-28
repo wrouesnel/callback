@@ -5,6 +5,7 @@ package apisettings
 import (
 	"net/url"
 	"github.com/wrouesnel/callback/connman"
+	"time"
 )
 
 const (
@@ -21,4 +22,7 @@ type APISettings struct {
 	// Websocket buffer sizes
 	ReadBufferSize int
 	WriteBufferSize int
+
+	// Websocket Timeouts
+	HandshakeTimeout time.Duration
 }
