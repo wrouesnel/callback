@@ -7,6 +7,8 @@ import (
 	"github.com/wrouesnel/callback/util/websocketrwc"
 	"github.com/wrouesnel/go.log"
 	"net/http"
+	"fmt"
+	"encoding/json"
 )
 
 // ConnectGet establishes a websocket connection to
@@ -44,5 +46,27 @@ func ConnectGet(settings apisettings.APISettings) httprouter.Handle {
 		} else {
 			log.Infoln("Callback session ended normally.")
 		}
+	}
+}
+
+func SessionsGet(settings apisettings.APISettings) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		defer r.Body.Close()
+
+		var err error
+
+		sessions := settings.ConnectionManager.ListClientSessions()
+
+		out, err := json.Marshal(&sessions)
+		if err != nil {
+			log.Errorln(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(out)))
+
+		w.Write(out)
 	}
 }

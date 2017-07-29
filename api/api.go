@@ -14,12 +14,12 @@ func NewAPI_v1(settings apisettings.APISettings) http.Handler {
 	router := httprouter.New()
 
 	// Event APIs
-	//router.GET("/events/connect", boot.Subscribe(settings))
-	//router.GET("/events/callback", plan.Subscribe(settings))
+	router.GET("/events/connect", connect.Subscribe(settings))
+	router.GET("/events/callback", callback.Subscribe(settings))
 
 	// Callback (reverse proxy) setup
 	router.GET("/callback/:callbackId", callback.CallbackGet(settings))
-	//router.GET("/callback/:identifier", plan.GetPlan(settings))
+	router.GET("/callback", callback.SessionsGet(settings))
 	//router.PUT("/callback/:identifier", plan.SetPlan(settings))
 	//router.DELETE("/callback/:identifier", plan.DeletePlan(settings))
 
@@ -28,6 +28,7 @@ func NewAPI_v1(settings apisettings.APISettings) http.Handler {
 
 	// Connect setup
 	router.GET("/connect/:callbackId", connect.ConnectGet(settings))
+	router.GET("/connect", connect.SessionsGet(settings))
 
 	return router
 }
