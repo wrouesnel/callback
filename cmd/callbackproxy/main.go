@@ -30,9 +30,10 @@ var (
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
-	stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback Id").String()
+	stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback ID").String()
+	stripPrefix = app.Flag("strip-prefix", "Prefix to remove from the supplied callback ID").String()
 
-	callbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
+	inputCallbackId = app.Arg("callbackId", "ID of the endpoint on the callback server to connect to").String()
 
 	proxyBufferSize = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 
@@ -55,9 +56,15 @@ func main() {
 		log.Fatalln("Must specify a callback server to connect to.")
 	}
 
-	if *callbackId == "" {
+	if *inputCallbackId == "" {
 		log.Fatalln("Cannot use a blank id")
 	}
+	
+	callbackId := *inputCallbackId
+    // Remove the given suffix
+    callbackId = strings.TrimSuffix(callbackId, *stripSuffix)
+    // Remove the given prefix
+    callbackId = strings.TrimSuffix(callbackId, *stripPrefix)
 
 	// Setup signal wait for shutdown
 	signalCh := make(chan os.Signal, 1)
@@ -74,7 +81,7 @@ func main() {
 		(*callbackServer).Path = fmt.Sprintf("%s/", (*callbackServer).Path)
 	}
 
-	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s", CallbackApiPath, *callbackId))
+	apiUrl, err := url.Parse(fmt.Sprintf("%s/%s", CallbackApiPath, callbackId))
 	if err != nil {
 		log.Fatalln("BUG: CallbackApiPath should always resolve")
 	}

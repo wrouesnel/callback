@@ -1,12 +1,19 @@
 
+# COVERDIR is just a temporary working directory for coverage files
 COVERDIR = $(shell pwd)/.coverage
+# TOOLDIR is the path to where our vendored build tooling lives
 TOOLDIR = $(shell pwd)/tools
+# CMD_DIR is the presumed location of golang binaries to build i.e. cmd/myprogram
+CMD_DIR := cmd
 
-GO_SRC := $(shell find . -name '*.go' ! -path '*/vendor/*' ! -path 'tools/*' ! -path 'assets/bindata.go' ! -path 'node_modules/*' ! -path 'web/*' ! -path 'assets/static/*' ) assets/bindata.go
-GO_DIRS := $(shell find . -path './vendor/*' -o -path './tools/*' -o -path './assets/bindata.go' -o -path './assets/static'cle -prune -o -name '*.go' -printf "%h\n" | uniq | tr -s '\n' ' ')
+# GO_SRC is used to track source code changes for builds
+GO_SRC := $(shell find . -name '*.go' ! -path '*/vendor/*' ! -path 'tools/*' )
+# GO_DIRS is used to pass package lists to gometalinter
+GO_DIRS := $(shell find . -path './vendor/*' -o -path './tools/*' -o -name '*.go' -printf "%h\n" | uniq | tr -s '\n' ' ')
+# GO_PKGS is used to run tests.
 GO_PKGS := $(shell go list ./... | grep -v '/vendor/')
-
-GO_CMDS := $(shell find cmd -mindepth 1 -type d -printf "%f ")
+# GO_CMDS is used to build command binaries (by convention assume to be anything under cmd/)
+GO_CMDS := $(shell find $(CMD_DIR) -mindepth 1 -type d -printf "%f ")
 
 VERSION ?= $(shell git describe --dirty)
 
@@ -25,7 +32,7 @@ WEB_BUILT_ASSETS := $(shell find assets/static -type f) $(shell find assets/stat
 WEBPACK := ./node_modules/.bin/webpack
 WEBPACK_DEV_SERVER := ./node_modules/.bin/webpack-dev-server
 
-all: style lint test $(GO_CMDS)
+all: style lint test binary
 
 binary: $(GO_CMDS)
 
