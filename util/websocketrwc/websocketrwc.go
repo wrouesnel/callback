@@ -153,7 +153,7 @@ func (c *Conn) Close() error {
 }
 
 // pinger sends ping messages on an interval for client keep-alive.
-func (c *Conn) pinger() {
+func (c *Conn) pinger() <-chan error {
 	ticker := time.NewTicker(PingInterval)
 	defer ticker.Stop()
 	for {
@@ -175,14 +175,16 @@ func newSafeBuffer() *safeBuffer {
 	}
 }
 
-// Upgrade a HTTP connection to return the wrapped Conn.
-func Upgrade(w http.ResponseWriter, r *http.Request, h http.Header, upgrader *websocket.Upgrader) (*Conn, error) {
+// Upgrade a HTTP connection to return the wrapped Conn. Returns the conn,
+// errors during the upgrade, and a channel which will be closed when the
+// underlying connection is closed.
+func Upgrade(w http.ResponseWriter, r *http.Request, h http.Header, upgrader *websocket.Upgrader) (*Conn, error, <-chan struct{}) {
 	if upgrader == nil {
 		upgrader = DefaultUpgrader
 	}
 	ws, err := upgrader.Upgrade(w, r, h)
 	if err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 
 	conn := &Conn{
@@ -193,7 +195,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request, h http.Header, upgrader *we
 
 	// Set read deadline to detect failed clients.
 	if err = conn.ws.SetReadDeadline(time.Now().Add(PongTimeout)); err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 	// Reset read deadline on Pong.
 	conn.ws.SetPongHandler(func(string) error {
@@ -203,7 +205,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request, h http.Header, upgrader *we
 	// Start ping loop for client keep-alive.
 	go conn.pinger()
 
-	return conn, nil
+	return conn, nil, conn.done
 }
 
 // Wrap's an established websocket connection.

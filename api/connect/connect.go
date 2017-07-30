@@ -70,3 +70,59 @@ func SessionsGet(settings apisettings.APISettings) httprouter.Handle {
 		w.Write(out)
 	}
 }
+
+// SSE subscription to events dispatched via a channel from the bootmanager.
+func Subscribe(settings apisettings.APISettings) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		defer r.Body.Close()
+
+		log := log.With("remote_addr", r.RemoteAddr)
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			log.Errorln("HTTP.ResponseWriter was not castable as http.Flusher")
+		}
+
+		closeNotifier, ok := w.(http.CloseNotifier)
+		if !ok {
+			log.Errorln("HTTP.ResponseWriter was not castable as http.Flusher")
+		}
+
+		closeCh := closeNotifier.CloseNotify()
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		// Subscribe to the notifier
+		msgCh := settings.ConnectionManager.SubscribeClientConnectionEvents(1)
+		defer settings.ConnectionManager.UnsubscribeClientConnectionEvents(msgCh)
+
+		log.Debugln("New boot event subscriber")
+
+		// Return messages as line-delimited JSON until connection closes or shutdown
+		func() {
+			// Send all messages we receive
+			for {
+				select {
+				case msg := <-msgCh:
+					log.Debugln("Sending boot event data")
+					b, err := json.Marshal(&msg)
+					if err != nil {
+						log.Errorln("Error marshalling JSON to subscriber", err)
+						return
+					}
+					_, err = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", "boot", b)
+					if err != nil {
+						log.Debugln("Write failed closing subscription:", err)
+						return
+					}
+					flusher.Flush()
+				case <-closeCh:
+					log.Debugln("Subscriber Client disconnected.")
+					return
+				}
+			}
+		}()
+	}
+}

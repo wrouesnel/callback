@@ -111,10 +111,13 @@ func (this *ConnectionManager) ListClientSessions() []ClientSessionDesc {
 	return ret
 }
 
-// CallbackConnection takes a callbackId and an established net.Conn object, and sets up the mux and reverse
-// proxy system. Returns an error channel which will yield nil or an error once
-// the underlying connection can be closed.
-func (this *ConnectionManager) CallbackConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser) <-chan error {
+// CallbackConnection sets up a new callback connection using the given
+// callbackId and an incomingConn object. The remoteAddr is informational and
+// should be any relevant string which identifies the callback origin.
+// doneCh is optional, but recommended, and should be a channel which will close
+// when the underlying connection is disconnected (this allows pre-emptive
+// detection of connection failure).
+func (this *ConnectionManager) CallbackConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser, doneCh <-chan struct{}) <-chan error {
 
 	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
 	errCh := make(chan error)
@@ -155,6 +158,11 @@ func (this *ConnectionManager) CallbackConnection(callbackId string, remoteAddr 
 			resultCh:            errCh,
 			CallbackSessionDesc: sessionData,
 		}
+
+		// Start a watcher goroutine to detect if
+		go func() {
+
+		}()
 
 		this.callbackSessions[callbackId] = newSession
 

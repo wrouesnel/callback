@@ -32,14 +32,14 @@ func CallbackGet(settings apisettings.APISettings) httprouter.Handle {
 			WriteBufferSize: int(settings.WriteBufferSize),
 		}
 
-		incomingConn, uerr := websocketrwc.Upgrade(w, r, nil, &upgrader)
+		incomingConn, uerr, doneCh := websocketrwc.Upgrade(w, r, nil, &upgrader)
 		if uerr != nil {
 			log.Errorln("Websocket upgrade failed:", uerr)
 			return
 		}
 		log.Infoln("Connection upgrade successful.")
 
-		errCh := settings.ConnectionManager.CallbackConnection(callbackId, r.RemoteAddr, incomingConn)
+		errCh := settings.ConnectionManager.CallbackConnection(callbackId, r.RemoteAddr, incomingConn, doneCh)
 
 		err := <-errCh
 		if err != nil {
@@ -97,8 +97,8 @@ func Subscribe(settings apisettings.APISettings) httprouter.Handle {
 		w.Header().Set("Connection", "keep-alive")
 
 		// Subscribe to the notifier
-		msgCh := settings.Bootmanager.SubscribeBootEvents(1)
-		defer settings.Bootmanager.UnsubscribeBootEvents(msgCh)
+		msgCh := settings.ConnectionManager.SubscribeCallbackEvents(1)
+		defer settings.ConnectionManager.UnsubscribeCallbackEvents(msgCh)
 
 		log.Debugln("New boot event subscriber")
 
