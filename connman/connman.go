@@ -71,6 +71,18 @@ type ClientSessionDesc struct {
 	CallbackId string `json:"callback_id"`
 }
 
+// copy makes a thread-safe copy ClientSessionDesc.
+func (cb *ClientSessionDesc) copy() ClientSessionDesc {
+	result := ClientSessionDesc{}
+	result.BytesOut = atomic.LoadUint64(&cb.BytesOut)
+	result.BytesIn = atomic.LoadUint64(&cb.BytesIn)
+
+	result.ConnectedAt = cb.ConnectedAt
+	result.RemoteAddr = cb.RemoteAddr
+	result.CallbackId = cb.CallbackId
+	return result
+}
+
 // CallbackSessionDesc holds connection infromation for a callback reverse proxy
 // session
 type CallbackSessionDesc struct {
@@ -251,7 +263,7 @@ func (this *ConnectionManager) ListClientSessions() *ClientSessionList {
 
 	ret := make([]ClientSessionDesc, len(this.clientSessions))
 	for _, v := range this.clientSessions {
-		ret = append(ret, *v)
+		ret = append(ret, v.copy())
 	}
 
 	return &ClientSessionList{
@@ -461,7 +473,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 		}()
 
 		// Start the proxy session.
-		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection, shutdownCh)
+		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection, shutdownCh, &sessionData.BytesOut, &sessionData.BytesIn)
 		cerr := <-errCh
 		if cerr != io.EOF || cerr != nil {
 			log.Errorln("Client disconnected from session due to error.")

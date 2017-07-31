@@ -130,7 +130,7 @@ func main() {
 
 	exitCh := make(chan int)
 	// Start proxying
-	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh)
+	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh, nil, nil )
 	// Wait for user shutdown or resultCh
 	go func() {
 		select {

@@ -211,7 +211,7 @@ func forwardServer(apiUri string, shutdownCh <-chan struct{}) chan error {
 				With("outgoing_local_addr", outgoingConn.LocalAddr())
 
 			log.Debugln("Proxy connected.")
-			errCh := util.HandleProxy(log, *proxyBufferSize, incomingConn, outgoingConn, shutdownCh)
+			errCh := util.HandleProxy(log, *proxyBufferSize, incomingConn, outgoingConn, shutdownCh, nil, nil)
 			go func() {
 				perr := <-errCh
 				if perr != nil {

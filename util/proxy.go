@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/wrouesnel/go.log"
 	"io"
+	"sync/atomic"
 )
 
 type readWriteCloser struct {
@@ -25,7 +26,7 @@ func NewReadWriteCloser(r io.Reader, w io.Writer, closeFn func() error) io.ReadW
 // io.ReadWriteCloser and sets up copy pipes between them. It returns a channel
 // which yields the exit status as an error type - nil is returned if the
 // connection closes normally.
-func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWriteCloser, shutdownCh <-chan struct{}) <-chan error {
+func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWriteCloser, shutdownCh <-chan struct{}, bytesOut, bytesIn *uint64) <-chan error {
 	resultCh := make(chan error)
 
 	go func() {
@@ -36,8 +37,8 @@ func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWrite
 
 		// Forward data between connections
 		// TODO: possibly allow shutting down the pipes.
-		closedSrcDest := pipe(log, bufferSize, incoming, outgoing, shutdownCh)
-		closedDestSrc := pipe(log, bufferSize, outgoing, incoming, shutdownCh)
+		closedSrcDest := pipe(log, bufferSize, incoming, outgoing, shutdownCh, bytesOut)
+		closedDestSrc := pipe(log, bufferSize, outgoing, incoming, shutdownCh, bytesIn)
 		for {
 			select {
 			case sderr := <-closedSrcDest:
@@ -77,7 +78,7 @@ func (err ErrIncompleteWrite) Error() string {
 // using a buffer of bufferSize.
 // TODO: it feels like there should be windowing being done here?
 // TODO: this function could be a lot cleaner
-func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdownCh <-chan struct{}) <-chan error {
+func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdownCh <-chan struct{}, bytesXfer *uint64) <-chan error {
 	closeCh := make(chan error)
 
 	go func() {
@@ -113,6 +114,10 @@ func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdown
 					}
 					close(closeCh)
 					return
+				}
+				// Increment the metric function
+				if bytesXfer != nil {
+					atomic.AddUint64(bytesXfer, uint64(writtenBytes))
 				}
 				if writtenBytes != readBytes {
 					ierr := &ErrIncompleteWrite{}
