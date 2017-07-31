@@ -30,7 +30,7 @@ func ConnectGet(settings apisettings.APISettings) httprouter.Handle {
 			WriteBufferSize: settings.WriteBufferSize,
 		}
 
-		incomingConn, uerr := websocketrwc.Upgrade(w, r, nil, &upgrader)
+		incomingConn, uerr, doneCh := websocketrwc.Upgrade(w, r, nil, &upgrader)
 		if uerr != nil {
 			log.Errorln("Websocket upgrade failed:", uerr)
 			return
@@ -38,7 +38,7 @@ func ConnectGet(settings apisettings.APISettings) httprouter.Handle {
 		log.Infoln("Connection upgrade successful.")
 
 		log.Infoln("Connection upgrade successful. Registering callback session.")
-		errCh := settings.ConnectionManager.ClientConnection(callbackId, r.RemoteAddr, incomingConn)
+		errCh := settings.ConnectionManager.ClientConnection(callbackId, r.RemoteAddr, incomingConn, doneCh)
 
 		err := <-errCh
 		if err != nil {

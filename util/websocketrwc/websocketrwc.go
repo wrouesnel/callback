@@ -153,7 +153,7 @@ func (c *Conn) Close() error {
 }
 
 // pinger sends ping messages on an interval for client keep-alive.
-func (c *Conn) pinger() <-chan error {
+func (c *Conn) pinger() {
 	ticker := time.NewTicker(PingInterval)
 	defer ticker.Stop()
 	for {
