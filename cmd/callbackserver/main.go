@@ -24,6 +24,7 @@ var (
 	app = kingpin.New("callbackserver", "Callback Websocket Mediation Server")
 
 	listenAddr  = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
+	contextPath = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
 	staticProxy = app.Flag("debug.static-proxy", "URL of a proxy hosting static resources externally").URL()
 
 	proxyBufferSize  = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
@@ -52,6 +53,7 @@ func main() {
 
 	settings := apisettings.APISettings{
 		ConnectionManager: connectionManager,
+		ContextPath:       *contextPath,
 		StaticProxy:       *staticProxy,
 		ReadBufferSize:    *proxyBufferSize,
 		WriteBufferSize:   *proxyBufferSize,
@@ -64,16 +66,24 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static", assets.StaticFiles(settings)))
 	mux.Handle("/", http.RedirectHandler("/static", http.StatusFound))
 
-	// Setup logging middleware with logrus and go.log
-	// FIXME: go.log should really provide an answer for this
+	var handler http.Handler
+	handler = mux
+
+	// Setup context path handler
+	if *contextPath != "" {
+		log.Infoln("Serving under context path:", *contextPath)
+		handler = http.StripPrefix(*contextPath, handler)
+	}
+
+	log.Debugln("Configuring callbackserver-http logging")
 	middlewareLogger := logrusmiddleware.Middleware{
 		Name:   "callbackserver",
 		Logger: logrus.StandardLogger(),
 	}
+	handler = middlewareLogger.Handler(mux, "callbackserver-http")
 
-	// Use multi-http to listen on all specified interfaces
 	log.Infoln("Starting web interface")
-	listeners, err := multihttp.Listen(*listenAddr, middlewareLogger.Handler(mux, "callback-api"))
+	listeners, err := multihttp.Listen(*listenAddr, handler)
 	defer func() {
 		for _, l := range listeners {
 			if cerr := l.Close(); cerr != nil {

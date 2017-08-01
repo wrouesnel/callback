@@ -16,6 +16,8 @@ const (
 type APISettings struct {
 	ConnectionManager *connman.ConnectionManager
 
+	// ContextPath is any URL-prefix being passed by a reverse proxy.
+	ContextPath string
 	StaticProxy *url.URL
 
 	// Websocket buffer sizes
