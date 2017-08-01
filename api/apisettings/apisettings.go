@@ -5,8 +5,8 @@ package apisettings
 import (
 	"github.com/wrouesnel/callback/connman"
 	"net/url"
-	"time"
 	"path/filepath"
+	"time"
 )
 
 const (

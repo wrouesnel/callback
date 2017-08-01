@@ -1,16 +1,16 @@
 package assets
 
 import (
+	"fmt"
+	"github.com/eknkc/amber"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/julienschmidt/httprouter"
 	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/go.log"
-	"net/http/httputil"
-	"net/http"
-	"github.com/eknkc/amber"
-	"path"
-	"fmt"
 	"html/template"
+	"net/http"
+	"net/http/httputil"
+	"path"
 	"strings"
 )
 
@@ -66,7 +66,7 @@ func StaticFiles(settings apisettings.APISettings, router *httprouter.Router) *h
 }
 
 func templateRenderer(name string, tmpl *template.Template, data interface{}) httprouter.Handle {
-	return func (w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		err := tmpl.Execute(w, data)
 		if err != nil {
 			log.Errorln("Error executing template:", name)

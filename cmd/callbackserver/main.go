@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/bakins/logrus-middleware"
+	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 	"github.com/wrouesnel/callback/api"
 	"github.com/wrouesnel/callback/api/apisettings"
@@ -14,7 +15,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/julienschmidt/httprouter"
 )
 
 // Version is set by the Makefile
