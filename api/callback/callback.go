@@ -1,14 +1,14 @@
 package callback
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/util/websocketrwc"
 	"github.com/wrouesnel/go.log"
 	"net/http"
-	"encoding/json"
-	"fmt"
 )
 
 // CallbackPosts establishes a persistent websocket connection, and tries to

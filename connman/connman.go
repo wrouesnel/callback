@@ -100,7 +100,7 @@ type EventType string
 const (
 	EventDisconnected = EventType("disconnected")
 	EventConnected    = EventType("connected")
-	EventUpdated	  = EventType("updated")
+	EventUpdated      = EventType("updated")
 )
 
 // ConnManEventHeader defines the common header used for connection manager events
@@ -372,7 +372,7 @@ func (this *ConnectionManager) CallbackConnection(callbackId string, remoteAddr 
 
 		// When the channel shuts down it should be automatically removed from the connection manager
 		go func() {
-			<- doneCh
+			<-doneCh
 			log.Infoln("Cleaning up finished callback session.")
 			defer this.callbackMtx.Unlock()
 			this.callbackMtx.Lock()
@@ -404,7 +404,7 @@ func (this *ConnectionManager) DisconnectCallbackConnection(callbackId string) e
 
 // ClientConnection attempts to connect to the callback reverse proxy session given by callbackId.
 // Blocks until the connection is finished (should be called by a goroutine).
-func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser, doneCh <- chan struct{}) <-chan error {
+func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr string, incomingConn io.ReadWriteCloser, doneCh <-chan struct{}) <-chan error {
 	log := log.With("remote_addr", remoteAddr).With("callback_id", callbackId)
 	errCh := make(chan error)
 
@@ -464,9 +464,9 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 		shutdownCh := make(chan struct{})
 		go func() {
 			select {
-			case <- doneCh:
+			case <-doneCh:
 				log.Infoln("Client underlying connection closed.")
-			case <- callbackDoneCh:
+			case <-callbackDoneCh:
 				log.Infoln("Callback session ended.")
 			}
 			close(shutdownCh)

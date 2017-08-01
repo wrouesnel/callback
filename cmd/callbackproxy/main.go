@@ -59,12 +59,12 @@ func main() {
 	if *inputCallbackId == "" {
 		log.Fatalln("Cannot use a blank id")
 	}
-	
+
 	callbackId := *inputCallbackId
-    // Remove the given suffix
-    callbackId = strings.TrimSuffix(callbackId, *stripSuffix)
-    // Remove the given prefix
-    callbackId = strings.TrimSuffix(callbackId, *stripPrefix)
+	// Remove the given suffix
+	callbackId = strings.TrimSuffix(callbackId, *stripSuffix)
+	// Remove the given prefix
+	callbackId = strings.TrimSuffix(callbackId, *stripPrefix)
 
 	// Setup signal wait for shutdown
 	signalCh := make(chan os.Signal, 1)
@@ -130,7 +130,7 @@ func main() {
 
 	exitCh := make(chan int)
 	// Start proxying
-	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh, nil, nil )
+	resultCh := util.HandleProxy(log, *proxyBufferSize, stdio, rwc, shutdownCh, nil, nil)
 	// Wait for user shutdown or resultCh
 	go func() {
 		select {

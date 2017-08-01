@@ -1,14 +1,14 @@
 package connect
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/util/websocketrwc"
 	"github.com/wrouesnel/go.log"
 	"net/http"
-	"fmt"
-	"encoding/json"
 )
 
 // ConnectGet establishes a websocket connection to
