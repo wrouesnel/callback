@@ -58,7 +58,7 @@ func StaticFiles(settings apisettings.APISettings, router *httprouter.Router) *h
 		router.GET(templateFullPath, templateRenderer(name, tmpl, settings))
 
 		if executedPath == defaultPage {
-			router.GET("/", templateRenderer(name, tmpl, settings))
+			router.GET(settings.WrapPath("/"), templateRenderer(name, tmpl, settings))
 		}
 	}
 
