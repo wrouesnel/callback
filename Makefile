@@ -27,7 +27,7 @@ SHELL := env PATH=$(PATH) /bin/bash
 BUILD_ENV ?= production
 
 WEB_SRC_ASSETS := $(shell find node_modules -type f) $(shell find web -type f)
-WEB_BUILT_ASSETS := $(shell find assets/static -type f) $(shell find assets/static -type d)
+WEB_BUILT_ASSETS := $(shell find assets/generated -type f) $(shell find assets/generated -type d)
 
 WEBPACK := ./node_modules/.bin/webpack
 WEBPACK_DEV_SERVER := ./node_modules/.bin/webpack-dev-server
@@ -39,20 +39,20 @@ binary: $(GO_CMDS)
 % : cmd/% $(GO_SRC)
 	CGO_ENABLED=0 go build -a -ldflags "-extldflags '-static' -X main.Version=$(VERSION)" -o $@ ./$<
 
-assets/bindata.go: assets/static $(WEB_BUILT_ASSETS)
+assets/bindata.go: assets/generated $(WEB_BUILT_ASSETS)
 	go-bindata \
 		-pkg=assets \
 		-o assets/bindata.go \
 		-ignore=bindata\.go \
 		-ignore=.*\.map$ \
-		-prefix=assets/static \
-		assets/static/...
+		-prefix=assets/generated \
+		assets/generated/...
 
 web: $(WEB_SRC_ASSETS)
 	$(WEBPACK)
 
 web-live: callbackserver
-	./$(BINARY).x86_64 --listen.addr=tcp://0.0.0.0:8080 --debug.static-proxy=http://localhost:23182 --log-level debug & \
+	./$< --listen.addr=tcp://0.0.0.0:8080 --debug.static-proxy=http://localhost:23182 --log-level debug & \
 		$(WEBPACK_DEV_SERVER) --port 23182 & \
 		wait $(jobs -p)
 

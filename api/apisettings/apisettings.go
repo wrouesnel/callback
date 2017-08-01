@@ -6,6 +6,7 @@ import (
 	"github.com/wrouesnel/callback/connman"
 	"net/url"
 	"time"
+	"path/filepath"
 )
 
 const (
@@ -26,4 +27,9 @@ type APISettings struct {
 
 	// Websocket Timeouts
 	HandshakeTimeout time.Duration
+}
+
+// WrapPath wraps a given URL string in the context path
+func (api *APISettings) WrapPath(path string) string {
+	return filepath.Join(api.ContextPath, path)
 }

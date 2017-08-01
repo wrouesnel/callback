@@ -4,9 +4,6 @@ import DevTools from 'cerebral/devtools';
 import HttpProvider from '@cerebral/http';
 import StorageProvider from '@cerebral/storage'
 
-// Signals
-
-
 const controller = Controller({
     devtools: DevTools({ host: 'localhost:8787' }),
     providers: [
@@ -16,7 +13,7 @@ const controller = Controller({
             prefix: "callback-ui"
         }),
         HttpProvider({
-            baseUrl: '/api/v1'
+            baseUrl: contextPath + '/api/v1'
         })
     ],
     state: {

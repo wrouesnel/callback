@@ -18,9 +18,9 @@ module.exports = {
         main: ['./web/main.js']
     },
     output: {
-        path: path.resolve('./assets/static/'),
+        path: path.resolve('./assets/generated/static/'),
         filename: '[name].js',
-        publicPath: '/static'
+        publicPath: '/static/web'
     },
     resolve: {
         modules: [
@@ -29,12 +29,7 @@ module.exports = {
         ]
     },
     plugins: [
-        new HtmlWebpackPlugin({
-            template: './web/index.tmpl.html',
-            inject: 'body',
-            filename: 'index.html'
-        }),
-        new ExtractTextPlugin('[name].min.css'),
+        new ExtractTextPlugin('[name].css'),
         new webpack.HotModuleReplacementPlugin()
     ],
     module: {

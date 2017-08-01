@@ -11,10 +11,10 @@ import (
 	"github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/multihttp"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/julienschmidt/httprouter"
 )
 
 // Version is set by the Makefile
@@ -61,26 +61,18 @@ func main() {
 	}
 
 	// Setup HTTP router
-	mux := http.NewServeMux()
-	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", api.NewAPI_v1(settings)))
-	mux.Handle("/static/", http.StripPrefix("/static", assets.StaticFiles(settings)))
-	mux.Handle("/", http.RedirectHandler("/static", http.StatusFound))
-
-	var handler http.Handler
-	handler = mux
-
-	// Setup context path handler
-	if *contextPath != "" {
-		log.Infoln("Serving under context path:", *contextPath)
-		handler = http.StripPrefix(*contextPath, handler)
-	}
+	router := httprouter.New()
+	api.NewAPI_v1(settings, router)
+	assets.StaticFiles(settings, router)
+	//router.Handler("GET","/", http.RedirectHandler(settings.WrapPath("/static"), http.StatusFound))
 
 	log.Debugln("Configuring callbackserver-http logging")
 	middlewareLogger := logrusmiddleware.Middleware{
 		Name:   "callbackserver",
 		Logger: logrus.StandardLogger(),
 	}
-	handler = middlewareLogger.Handler(mux, "callbackserver-http")
+
+	handler := middlewareLogger.Handler(router, "callbackserver-http")
 
 	log.Infoln("Starting web interface")
 	listeners, err := multihttp.Listen(*listenAddr, handler)
