@@ -11,7 +11,7 @@ import (
 
 const (
 	// Imported by other utilities so we can track the latest API automatically
-	CallbackLatestApi = "v2"
+	CallbackLatestApi = "v1"
 )
 
 type APISettings struct {
