@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"encoding/base64"
 )
 
 // Version is set by the Makefile
@@ -30,6 +31,9 @@ var (
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
+	basicUser = app.Flag("http.user", "Basic Authentication User to use for connection").Envar("CALLBACKPROXY_USER").String()
+	basicPassword = app.Flag("http.password", "Basic Authentication Password to use for connection").Envar("CALLBACKPROXY_PASSWORD").String()
+
 	stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback ID").String()
 	stripPrefix = app.Flag("strip-prefix", "Prefix to remove from the supplied callback ID").String()
 
@@ -40,6 +44,10 @@ var (
 	loglevel  = app.Flag("log-level", "Logging Level").Default("info").String()
 	logformat = app.Flag("log-format", "If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.").Default("logger:stderr").String()
 )
+
+func basicAuthEncode(user, pass string) string {
+	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
+}
 
 func main() {
 	app.Version(Version)
@@ -110,7 +118,13 @@ func main() {
 		// TODO: what do you set the buffers to when you are going to mux over it
 	}
 
-	wconn, _, err := wDialer.Dial(apiUri.String(), nil)
+	reqHeaders := http.Header{}
+	if *basicUser != "" || *basicPassword != "" {
+		log.Debugln("Setting HTTP basic auth.")
+		reqHeaders.Set("Authorization", "Basic " + basicAuthEncode(*basicUser, *basicPassword) )
+	}
+
+	wconn, _, err := wDialer.Dial(apiUri.String(), reqHeaders)
 	if err != nil {
 		log.Fatalln("Failed to connect to callback server:", err)
 	}
