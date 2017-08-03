@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	app = kingpin.New("callbackreverse", "Simple websocket stdio proxy client for callback server")
+	app = kingpin.New("callbackproxy", "Simple websocket stdio proxy client for callback server")
 
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()

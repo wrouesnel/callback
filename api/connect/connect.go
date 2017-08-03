@@ -35,7 +35,6 @@ func ConnectGet(settings apisettings.APISettings) httprouter.Handle {
 			log.Errorln("Websocket upgrade failed:", uerr)
 			return
 		}
-		log.Infoln("Connection upgrade successful.")
 
 		log.Infoln("Connection upgrade successful. Registering callback session.")
 		errCh := settings.ConnectionManager.ClientConnection(callbackId, r.RemoteAddr, incomingConn, doneCh)
