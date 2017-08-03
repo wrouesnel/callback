@@ -15,6 +15,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/stanvit/go-forwarded"
+	"net/http"
 )
 
 // Version is set by the Makefile
@@ -25,6 +27,8 @@ var (
 
 	listenAddr  = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
 	contextPath = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
+	allowedForwardedNets = app.Flag("http.local-networks", "Comma separated list of local networks which can set Forwarded headers").Default("127.0.0.0/8").String()
+
 	staticProxy = app.Flag("debug.static-proxy", "URL of a proxy hosting static resources externally").URL()
 
 	proxyBufferSize  = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
@@ -72,7 +76,17 @@ func main() {
 		Logger: logrus.StandardLogger(),
 	}
 
-	handler := middlewareLogger.Handler(router, "callbackserver-http")
+	handler := http.Handler(middlewareLogger.Handler(router, "callbackserver-http"))
+
+	// Add the Forwarded middleware
+	wrapper, werr := forwarded.New(*allowedForwardedNets,
+		false, true,
+		"X-Forwarded-For", "X-Forwarded-Protocol")
+	if werr != nil {
+		log.Fatalln("Could not setup forwarding middleware.")
+	}
+
+	handler = wrapper.Handler(handler)
 
 	log.Infoln("Starting web interface")
 	listeners, err := multihttp.Listen(*listenAddr, handler)

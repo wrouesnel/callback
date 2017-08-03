@@ -262,8 +262,9 @@ func (this *ConnectionManager) ListClientSessions() *ClientSessionList {
 	defer this.clientMtx.RUnlock()
 
 	ret := make([]ClientSessionDesc, len(this.clientSessions))
+	i := 0
 	for _, v := range this.clientSessions {
-		ret = append(ret, v.copy())
+		ret[i] = v.copy()
 	}
 
 	return &ClientSessionList{
@@ -421,6 +422,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 			return
 		}
 		this.callbackMtx.RUnlock()
+		log.Debugln("Found callback session.")
 
 		// Session found, check its not shutting down...
 		callbackDoneCh := session.GetShutdownChannel()
@@ -430,6 +432,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 			close(errCh)
 			return
 		}
+		log.Debugln("Session is still active.")
 
 		// Session seems to be alive, try and dial it. If we fail here we just give up.
 		reverseConnection, err := session.muxClient.Open()
@@ -439,6 +442,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 			close(errCh)
 			return
 		}
+		log.Debugln("Opened reverse connection over mux.")
 
 		// Setup session metadata.
 		sessionData := &ClientSessionDesc{
@@ -453,11 +457,10 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 		this.clientMtx.Lock()
 		this.clientSessions[callbackId] = sessionData
 		this.clientMtx.Unlock()
+		log.Debugln("Added session metadata.")
 
 		// Increment target sessions connected session count
 		atomic.AddUint32(&session.desc.NumClients, 1)
-
-		log.Infoln("Client connected to session.")
 
 		// shutdownCh needs to combine the client's websocket status and the callback sessions connection status to
 		// ensure prompt shutdown of the session is either fails.
@@ -472,6 +475,7 @@ func (this *ConnectionManager) ClientConnection(callbackId string, remoteAddr st
 			close(shutdownCh)
 		}()
 
+		log.Infoln("Client connected to session. Starting proxying.")
 		// Start the proxy session.
 		errCh := util.HandleProxy(log, this.proxyBufferSize, incomingConn, reverseConnection, shutdownCh, &sessionData.BytesOut, &sessionData.BytesIn)
 		cerr := <-errCh

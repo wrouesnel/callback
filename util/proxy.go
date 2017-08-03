@@ -26,6 +26,8 @@ func NewReadWriteCloser(r io.Reader, w io.Writer, closeFn func() error) io.ReadW
 // io.ReadWriteCloser and sets up copy pipes between them. It returns a channel
 // which yields the exit status as an error type - nil is returned if the
 // connection closes normally.
+// TODO: if one side is closed, there's no point continuing to write with the
+// other.
 func HandleProxy(log log.Logger, bufferSize int, incoming, outgoing io.ReadWriteCloser, shutdownCh <-chan struct{}, bytesOut, bytesIn *uint64) <-chan error {
 	resultCh := make(chan error)
 
@@ -101,6 +103,7 @@ func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdown
 						closeCh <- nil
 					}
 					close(closeCh)
+					log.Debugln("Proxy shutting down during read phase.")
 					return
 				}
 				writtenBytes, werr := dst.Write(data[:readBytes])
@@ -113,6 +116,7 @@ func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdown
 						closeCh <- nil
 					}
 					close(closeCh)
+					log.Debugln("Proxy shutting down during write phase.")
 					return
 				}
 				// Increment the metric function
@@ -124,6 +128,7 @@ func pipe(log log.Logger, bufferSize int, src io.Reader, dst io.Writer, shutdown
 					log.Errorln("write error:", ierr)
 					closeCh <- ierr
 					close(closeCh)
+					log.Debugln("Proxy shutting down during transfer validation.")
 					return
 				}
 			}
