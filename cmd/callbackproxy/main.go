@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -15,7 +16,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"encoding/base64"
 )
 
 // Version is set by the Makefile
@@ -31,7 +31,7 @@ var (
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
-	basicUser = app.Flag("http.user", "Basic Authentication User to use for connection").Envar("CALLBACKPROXY_USER").String()
+	basicUser     = app.Flag("http.user", "Basic Authentication User to use for connection").Envar("CALLBACKPROXY_USER").String()
 	basicPassword = app.Flag("http.password", "Basic Authentication Password to use for connection").Envar("CALLBACKPROXY_PASSWORD").String()
 
 	stripSuffix = app.Flag("strip-suffix", "Suffix to remove from the supplied callback ID").String()
@@ -121,7 +121,7 @@ func main() {
 	reqHeaders := http.Header{}
 	if *basicUser != "" || *basicPassword != "" {
 		log.Debugln("Setting HTTP basic auth.")
-		reqHeaders.Set("Authorization", "Basic " + basicAuthEncode(*basicUser, *basicPassword) )
+		reqHeaders.Set("Authorization", "Basic "+basicAuthEncode(*basicUser, *basicPassword))
 	}
 
 	wconn, _, err := wDialer.Dial(apiUri.String(), reqHeaders)

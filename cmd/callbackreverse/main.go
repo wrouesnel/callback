@@ -28,13 +28,19 @@ const (
 )
 
 var (
-	app = kingpin.New("callbackreverse", "Callback Server Reverse Proxy Client")
+	app = kingpin.New("callbackreverse", "Callback Server Reverse Proxy Client").DefaultEnvars()
 
 	callbackServer = app.Flag("server", "Callback Server to connect to").URL()
 	connectTimeout = app.Flag("timeout", "Connection timeout").Default("5s").Duration()
 
 	forwardingAddress = app.Flag("connect", "Address and Port to forward to").String()
 	callbackId        = app.Flag("id", "Callback ID to register as").String()
+
+	callbackPassword = app.Flag("auth.password", "Password to supply to the callback server").String()
+	callbackServerCa = app.Flag("security.cacert", "CA certificate to authenticate callback server").File()
+	// If specified, the commonName on the certificates always supercedes the callbackId
+	callbackClientCert = app.Flag("auth.tls.cert", "TLS client certificates to callbackServer with").File()
+	callbackClientKey  = app.Flag("auth.tls.key", "TLS client key to authenticate to callbackServer with").File()
 
 	forever          = app.Flag("forever", "Automatically reconnect on disconnect").Default("true").Bool()
 	foreverReconnect = app.Flag("reconnect-interval", "Reconnect interval").Default("1s").Duration()

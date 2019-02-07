@@ -36,6 +36,9 @@ func (err ErrSessionUnknown) Error() string {
 	return "callback session does not exist"
 }
 
+// ConnectionManager handles managing the locally connected set of sessions for
+// this callback instance/
+// TODO: sessions will propagate to the database and we'll do cluster handoffs
 type ConnectionManager struct {
 	// These counters generate sequence numbers for the session event streams,
 	// to allow clients to detect missed updates.

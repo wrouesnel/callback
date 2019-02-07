@@ -37,7 +37,8 @@ all: style lint test binary
 binary: $(GO_CMDS)
 
 % : cmd/% $(GO_SRC)
-	CGO_ENABLED=0 go build -a -ldflags "-extldflags '-static' -X main.Version=$(VERSION)" -o $@ ./$<
+#	CGO_ENABLED=0 go build -a -ldflags "-extldflags '-static' -X main.Version=$(VERSION)" -o $@ ./$<
+	go build -ldflags "-X main.Version=$(VERSION)" -o $@ ./$<
 
 assets/bindata.go: assets/generated $(WEB_BUILT_ASSETS)
 	go-bindata \

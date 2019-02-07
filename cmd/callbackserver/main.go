@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"github.com/bakins/logrus-middleware"
+	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
+	"github.com/stanvit/go-forwarded"
 	"github.com/wrouesnel/callback/api"
 	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/assets"
@@ -12,11 +14,14 @@ import (
 	"github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/multihttp"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/stanvit/go-forwarded"
-	"net/http"
+
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // Version is set by the Makefile
@@ -25,14 +30,17 @@ var Version = "0.0.0.dev"
 var (
 	app = kingpin.New("callbackserver", "Callback Websocket Mediation Server")
 
-	listenAddr  = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
-	contextPath = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
+	listenAddr           = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
+	contextPath          = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
 	allowedForwardedNets = app.Flag("http.local-networks", "Comma separated list of local networks which can set Forwarded headers").Default("127.0.0.0/8").String()
 
 	staticProxy = app.Flag("debug.static-proxy", "URL of a proxy hosting static resources externally").URL()
 
 	proxyBufferSize  = app.Flag("proxy.buffer-size", "Size in bytes of connection buffers").Default("1024").Int()
 	handshakeTimeout = app.Flag("proxy.timeout", "Set maximum timeouts for connections").Default("3s").Duration()
+
+	persistenceDatabase         = app.Flag("persistence.db.type", "Database type to use for backend persistence").Enum("postgres", "sqlite3", "mysql")
+	persistenceConnectionString = app.Flag("persistence.db.conn", "Database specific connection string").String()
 
 	loglevel  = app.Flag("log-level", "Logging Level").Default("info").String()
 	logformat = app.Flag("log-format", "If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&local=7 or logger:stdout?json=true. Defaults to stderr.").Default("logger:stderr").String()
@@ -55,8 +63,15 @@ func main() {
 	log.Infoln("Starting connection manager")
 	connectionManager := connman.NewConnectionManager(*proxyBufferSize)
 
+	log.Infoln("Opening database connection")
+	dbConn, dbErr := gorm.Open(*persistenceDatabase, *persistenceConnectionString)
+	if dbErr != nil {
+		log.Fatalln("Could not open database connection:", dbErr)
+	}
+
 	settings := apisettings.APISettings{
 		ConnectionManager: connectionManager,
+		DbConn:            dbConn,
 		ContextPath:       *contextPath,
 		StaticProxy:       *staticProxy,
 		ReadBufferSize:    *proxyBufferSize,

@@ -3,6 +3,7 @@
 package apisettings
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/wrouesnel/callback/connman"
 	"net/url"
 	"path/filepath"
@@ -14,18 +15,24 @@ const (
 	CallbackLatestApi = "v1"
 )
 
+// APISettings contains settings needed for the API to operate
 type APISettings struct {
+	// ConnectionManager holds a handle to the backend connection manager
 	ConnectionManager *connman.ConnectionManager
+	// DbConn is the gorm database connection
+	DbConn *gorm.DB
 
 	// ContextPath is any URL-prefix being passed by a reverse proxy.
 	ContextPath string
+	// StaticProxy if set is the backend static resources should be returned from
 	StaticProxy *url.URL
 
-	// Websocket buffer sizes
-	ReadBufferSize  int
+	// Websocket read buffer size
+	ReadBufferSize int
+	// Websocket write buffer size
 	WriteBufferSize int
 
-	// Websocket Timeouts
+	// Websocket handshake timeouts
 	HandshakeTimeout time.Duration
 }
 
