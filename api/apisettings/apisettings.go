@@ -3,10 +3,11 @@
 package apisettings
 
 import (
-	"github.com/wrouesnel/callback/connman"
 	"net/url"
 	"path/filepath"
 	"time"
+
+	"github.com/wrouesnel/callback/connman"
 )
 
 const (

@@ -3,13 +3,14 @@
 package connman
 
 import (
-	"github.com/hashicorp/yamux"
-	"github.com/wrouesnel/callback/util"
-	"github.com/wrouesnel/go.log"
 	"io"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/yamux"
+	"github.com/wrouesnel/callback/util"
+	log "github.com/wrouesnel/go.log"
 )
 
 type ErrSessionDisconnected struct {

@@ -2,3 +2,5 @@ cover.out
 .coverage
 .idea
 /callback*
+.bin
+

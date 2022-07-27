@@ -2,21 +2,25 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"net/http"
+
 	"github.com/bakins/logrus-middleware"
+	logrusmiddleware "github.com/bakins/logrus-middleware"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
+	"github.com/stanvit/go-forwarded"
 	"github.com/wrouesnel/callback/api"
 	"github.com/wrouesnel/callback/api/apisettings"
 	"github.com/wrouesnel/callback/assets"
 	"github.com/wrouesnel/callback/connman"
-	"github.com/wrouesnel/go.log"
+	log "github.com/wrouesnel/go.log"
 	"github.com/wrouesnel/multihttp"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"os/signal"
-	"syscall"
-	"github.com/stanvit/go-forwarded"
-	"net/http"
 )
 
 // Version is set by the Makefile
@@ -25,8 +29,8 @@ var Version = "0.0.0.dev"
 var (
 	app = kingpin.New("callbackserver", "Callback Websocket Mediation Server")
 
-	listenAddr  = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
-	contextPath = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
+	listenAddr           = app.Flag("listen.addr", "Port to listen on for API").Default("tcp://0.0.0.0:8080").Strings()
+	contextPath          = app.Flag("http.context-path", "Subpath the application is being hosted under").Default("").String()
 	allowedForwardedNets = app.Flag("http.local-networks", "Comma separated list of local networks which can set Forwarded headers").Default("127.0.0.0/8").String()
 
 	staticProxy = app.Flag("debug.static-proxy", "URL of a proxy hosting static resources externally").URL()

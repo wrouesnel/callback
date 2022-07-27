@@ -3,12 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/hashicorp/yamux"
-	"github.com/wrouesnel/callback/util"
-	"github.com/wrouesnel/callback/util/websocketrwc"
-	"github.com/wrouesnel/go.log"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"net"
 	"net/http"
@@ -18,6 +12,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/hashicorp/yamux"
+	"github.com/wrouesnel/callback/util"
+	"github.com/wrouesnel/callback/util/websocketrwc"
+	log "github.com/wrouesnel/go.log"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 // Version is set by the Makefile

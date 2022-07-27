@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/wrouesnel/go.log"
 	"io"
+	"log"
 	"sync/atomic"
 )
 

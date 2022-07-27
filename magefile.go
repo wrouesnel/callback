@@ -387,30 +387,29 @@ func Tools() (err error) {
 func Lint() error {
 	mg.Deps(Tools)
 	args := []string{"-j", fmt.Sprintf("%v", concurrency), fmt.Sprintf("--deadline=%s",
-		linterDeadline.String()), "--enable-all", "--line-length=120",
-		"--disable=gocyclo", "--disable=testify", "--disable=test", "--disable=lll", "--exclude=assets/bindata.go"}
-	return sh.RunV("gometalinter", append(args, goDirs...)...)
+		linterDeadline.String()), "run", "--enable-all", "--line-length=120",
+		"--disable=gocyclo", "--disable=testify", "--disable=test", "--disable=lll"}
+	return sh.RunV("golangci-lint", append(args, goDirs...)...)
+}
+
+// fmt runs golangci-lint with the formatter options
+func formattingLinter(doFixes bool) error {
+	mg.Deps(Tools)
+	args := []string{"run", "--disable-all", "--enable=gofmt", "--enable=goimports"}
+	if doFixes {
+		args = append(args, "--fix")
+	}
+	return sh.RunV("golangci-lint", args...)
 }
 
 // Style checks formatting of the file. CI will run this before acceptiing PRs.
 func Style() error {
-	mg.Deps(Tools)
-	args := []string{"--disable-all", "--enable=gofmt", "--enable=goimports"}
-	return sh.RunV("gometalinter", append(args, goSrc...)...)
+	return formattingLinter(false)
 }
 
 // Fmt automatically formats all source code files
 func Fmt() error {
-	mg.Deps(Tools)
-	fmtErr := sh.RunV("gofmt", append([]string{"-s", "-w"}, goSrc...)...)
-	if fmtErr != nil {
-		return fmtErr
-	}
-	impErr := sh.RunV("goimports", append([]string{"-w"}, goSrc...)...)
-	if impErr != nil {
-		return fmtErr
-	}
-	return nil
+	return formattingLinter(true)
 }
 
 func listCoverageFiles() ([]string, error) {
@@ -661,7 +660,7 @@ func Autogen() error {
 			continue
 		}
 
-		gitHookPath := fmt.Sprintf(".git/hooks/%s", fname)
+		gitHookPath := fmt.Sprintf(".git/hooks/%s", hookName)
 		repoHookPath := path.Join(gitHookDir, fname.Name())
 
 		scripts := []string{}
@@ -669,7 +668,10 @@ func Autogen() error {
 			if scriptName.IsDir() {
 				continue
 			}
-			scripts = append(scripts, path.Join(gitHookDir, scriptName.Name()))
+			fullHookPath := path.Join(gitHookDir, hookName, scriptName.Name())
+			relHookPath := Must(filepath.Rel(binRootName, fullHookPath))
+
+			scripts = append(scripts, relHookPath)
 
 			data := []byte{}
 			data, err := ioutil.ReadFile(gitHookPath)
@@ -700,7 +702,7 @@ func Autogen() error {
 						fmt.Println("Found multiple managed script sections in ", fname.Name(), "first was at line ", headAt, "second was at line ", idx)
 						return errors.New("found multiple managed script sections")
 					} else {
-						tailAt = idx
+						tailAt = idx + 1
 						continue
 					}
 				}
@@ -714,10 +716,13 @@ func Autogen() error {
 				tailAt = len(splitHook)
 			}
 
-			scriptPackage := []string{}
+			scriptPackage := []string{constManagedScriptSectionHead}
+			scriptPackage = append(scriptPackage, "# These lines were added by go run mage.go autogen.", "")
 			for _, scriptPath := range scripts {
-				scriptPackage = append(scriptPackage, fmt.Sprintf("\"%s\" || exit $?", scriptPath))
+				scriptPackage = append(scriptPackage, fmt.Sprintf("\"./%s\" || exit $?", scriptPath))
 			}
+			scriptPackage = append(scriptPackage, "", constManagedScriptSectionFoot)
+
 			updatedScript := append(splitHook[:headAt], scriptPackage...)
 			updatedScript = append(updatedScript, splitHook[tailAt:]...)
 
