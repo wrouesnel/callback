@@ -39,15 +39,6 @@ binary: $(GO_CMDS)
 % : cmd/% $(GO_SRC)
 	CGO_ENABLED=0 go build -a -ldflags "-extldflags '-static' -X main.Version=$(VERSION)" -o $@ ./$<
 
-assets/bindata.go: assets/generated $(WEB_BUILT_ASSETS)
-	go-bindata \
-		-pkg=assets \
-		-o assets/bindata.go \
-		-ignore=bindata\.go \
-		-ignore=.*\.map$ \
-		-prefix=assets/generated \
-		assets/generated/...
-
 web: $(WEB_SRC_ASSETS)
 	$(WEBPACK)
 
@@ -56,17 +47,17 @@ web-live: callbackserver
 		$(WEBPACK_DEV_SERVER) --port 23182 & \
 		wait $(jobs -p)
 
-style: tools
+style:
 	gometalinter --disable-all --enable=gofmt --vendor $(GO_DIRS)
 
-lint: tools
+lint:
 	@echo Using $(CONCURRENT_LINTERS) processes
 	gometalinter -j $(CONCURRENT_LINTERS) --deadline=$(LINTER_DEADLINE) --disable=gotype $(GO_DIRS)
 
-fmt: tools
+fmt:
 	gofmt -s -w $(GO_SRC)
 
-test: tools $(GO_SRC)
+test: $(GO_SRC)
 	@mkdir -p $(COVERDIR)
 	@rm -f $(COVERDIR)/*
 	for pkg in $(GO_PKGS) ; do \

@@ -80,8 +80,8 @@ more management.
 
 # Building
 
-The build system is slightly influx at the moment - it mostly works but 
-building the web assets is not fully automated yet.
+Builds are automated using [Magefiles](https://magefile.org) which implement Makefile like helpers as go code.
+From your perspective they simpy run `go run mage.go` to access the build system.
 
 # TODO
 * Web interface

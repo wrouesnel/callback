@@ -18,7 +18,7 @@ module.exports = {
         main: ['./web/main.js']
     },
     output: {
-        path: path.resolve('./assets/generated/static/'),
+        path: path.resolve('./assets/static/'),
         filename: '[name].js',
         publicPath: '/static/web'
     },
