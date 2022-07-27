@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/yamux"
-	"github.com/wrouesnel/callback/util"
+	"github.com/wrouesnel/callback/pkg/util"
 	log "github.com/wrouesnel/go.log"
 )
 

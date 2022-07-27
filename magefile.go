@@ -36,7 +36,7 @@ var curDir = func() string {
 const (
 	constCoverageDir = ".coverage"
 	constToolBinDir  = ".bin"
-	constGitHookDir  = "git-hooks"
+	constGitHookDir  = "githooks"
 	constBinDir      = "bin"
 	constReleaseDir  = "release"
 	constCmdDir      = "cmd"
