@@ -376,7 +376,7 @@ func Tools() (err error) {
 		return nil
 	}
 
-	if berr := toolBuild("static", "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.2"); berr != nil {
+	if berr := toolBuild("static", "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.2", "github.com/wadey/gocovmerge@latest"); berr != nil {
 		return berr
 	}
 
